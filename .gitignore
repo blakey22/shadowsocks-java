@@ -1,0 +1,9 @@
+# ignore output folders
+.idea/
+out/
+target/
+
+# ignore files
+config.json
+*.iml
+
