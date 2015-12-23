@@ -4,20 +4,28 @@ import com.stfl.misc.Config;
 import com.stfl.misc.Util;
 import com.stfl.network.LocalServer;
 import com.stfl.network.NioLocalServer;
+import com.stfl.network.proxy.IProxy;
+import com.stfl.network.proxy.ProxyFactory;
 import com.stfl.ss.CryptFactory;
-
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.logging.Logger;
 
 public class Main {
+    private static Logger logger = Logger.getLogger(Main.class.getName());
 
     public static void main(String[] args) {
-        Logger logger = Logger.getLogger(Main.class.getName());
+        if (args.length != 0) {
+            startCommandLine(args);
+        }
+        else {
+            MainGui.launch(MainGui.class);
+        }
+    }
+
+    private static void startCommandLine(String[] args) {
         Config config;
 
         config = parseArgument(args);
@@ -26,26 +34,16 @@ public class Main {
             return;
         }
 
-        String s = config.saveToJson();
-        PrintWriter writer = null;
-        try {
-            writer = new PrintWriter("config.json");
-            writer.println(s);
-            writer.close();
-        } catch (FileNotFoundException e) {
-            logger.warning("Unable to save config");
-        }
+        Util.saveFile(Constant.CONF_FILE, config.saveToJson());
 
         try {
             //LocalServer server = new LocalServer(config);
             NioLocalServer server = new NioLocalServer(config);
             Thread t = new Thread(server);
             t.start();
-            logger.info("Shadowsocks-Java v" + Util.getVersion());
-            logger.info("Server starts at port: " + config.getLocalPort());
             t.join();
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.warning("Unable to start server: " + e.toString());
         }
     }
 
@@ -100,6 +98,9 @@ public class Main {
             else if (args[i].equals("--password")) {
                 config.setPassword(args[i + 1]);
             }
+            else if (args[i].equals("--proxy")) {
+                config.setProxyType(args[i + 1]);
+            }
         }
 
         return config;
@@ -113,13 +114,17 @@ public class Main {
         System.out.println("  --cipher [CIPHER_NAME]");
         System.out.println("  --password [PASSWORD]");
         System.out.println("  --config [CONFIG_FILE]");
+        System.out.println("  --proxy [TYPE]");
+        System.out.println("Support Proxy Type:");
+        for (IProxy.TYPE t : ProxyFactory.getSupportedProxyTypes()) {
+            System.out.printf("  %s\n", t.toString().toLowerCase());
+        }
         System.out.println("Support Ciphers:");
         for (String s : CryptFactory.getSupportedCiphers()) {
             System.out.printf("  %s\n", s);
         }
         System.out.println("Example:");
-        System.out.println("  ss --local \"127.0.0.1:1080\" --remote \"[SS_SERVER_IP]:8080\" --cipher \"aes-256-cfb\" --password \"HelloWorld\"");
+        System.out.println("  ss --local \"127.0.0.1:1080\" --remote \"[SS_SERVER_IP]:1080\" --cipher \"aes-256-cfb\" --password \"HelloWorld\"");
         System.out.println("  ss --config config.json");
-
     }
 }

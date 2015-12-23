@@ -31,21 +31,20 @@
 
 package com.stfl.misc;
 
+import com.stfl.network.proxy.Socks5Proxy;
 import org.json.simple.JSONObject;
 
 import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.security.SecureRandom;
 
 /**
  * Helper class
  */
 public class Util {
-
-    public static String getVersion() {
-        return "0.1";
-    }
-
-    public static String byteArrayToStr(byte[] a) {
+    public static String dumpBytes(byte[] a) {
         StringBuilder sb = new StringBuilder(a.length * 2);
         for(byte b: a)
             sb.append(String.format("%x", b & 0xff));
@@ -127,7 +126,7 @@ public class Util {
         int port;
         int neededLength;
         switch (data[0]) {
-            case 0x1:
+            case Socks5Proxy.ATYP_IP_V4:
                 // IP v4 Address
                 // 4 bytes of IP, 2 bytes of port
                 neededLength = 6;
@@ -136,20 +135,16 @@ public class Util {
                     ret = String.format("%d.%d.%d.%d:%d", data[1], data[2], data[3], data[4], port);
                 }
                 break;
-            case 0x3:
+            case Socks5Proxy.ATYP_DOMAIN_NAME:
                 // domain
                 neededLength = data[1];
                 if (data.length > neededLength + 3) {
-                    try {
-                        port = getPort(data[neededLength + 2], data[neededLength + 3]);
-                        String domain = new String(data, 2, neededLength, "UTF-8");
-                        ret = String.format("%s:%d", domain, port);
-                    } catch (UnsupportedEncodingException e) {
-                        e.printStackTrace();
-                    }
+                    port = getPort(data[neededLength + 2], data[neededLength + 3]);
+                    String domain = bytesToString(data, 2, neededLength);
+                    ret = String.format("%s:%d", domain, port);
                 }
                 break;
-            case 0x4:
+            case Socks5Proxy.ATYP_IP_V6:
                 // IP v6 Address
                 // 16 bytes of IP, 2 bytes of port
                 neededLength = 18;
@@ -166,7 +161,56 @@ public class Util {
         return ret;
     }
 
-    public static short byteToUnsignedByte(byte b) {
+    public static String bytesToString(byte[] data, int start, int length) {
+        String str = "";
+
+        try {
+            str = new String(data, start, length, "UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
+
+        return str;
+    }
+
+    public static byte[] composeSSHeader(String host, int port) {
+        // TYPE (1 byte) + LENGTH (1 byte) + HOST (var bytes) + PORT (2 bytes)
+        byte[] respData = new byte[host.length() + 4];
+
+        respData[0] = Socks5Proxy.ATYP_DOMAIN_NAME;
+        respData[1] = (byte)host.length();
+        System.arraycopy(host.getBytes(), 0, respData, 2, host.length());
+        respData[host.length() + 2] = (byte)(port >> 8);
+        respData[host.length() + 3] = (byte)(port & 0xFF);
+
+        return  respData;
+    }
+
+    public static boolean saveFile(String fn, String content) {
+        PrintWriter writer;
+        try {
+            writer = new PrintWriter(fn);
+            writer.println(content);
+            writer.close();
+        } catch (FileNotFoundException e) {
+            return false;
+        }
+        return true;
+    }
+
+    public static String getFileContent(String fn) {
+        Path path = Paths.get(fn);
+        String content = "";
+        try {
+            content = new String(Files.readAllBytes(path));
+        } catch (IOException e) {
+            // do nothing
+        }
+
+        return content;
+    }
+
+    private static short byteToUnsignedByte(byte b) {
         return (short)(b & 0xff);
     }
 

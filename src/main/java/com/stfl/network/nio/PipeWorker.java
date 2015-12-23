@@ -33,13 +33,17 @@ package com.stfl.network.nio;
 
 import com.stfl.misc.Config;
 import com.stfl.misc.Util;
-import com.stfl.network.Socks5;
+import com.stfl.Constant;
+import com.stfl.network.proxy.IProxy;
+import com.stfl.network.proxy.ProxyFactory;
 import com.stfl.ss.CryptFactory;
 import com.stfl.ss.ICrypt;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
+import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.logging.Logger;
@@ -51,7 +55,7 @@ public class PipeWorker implements Runnable {
     private SocketChannel _remoteChannel;
     private ISocketHandler _localSocketHandler;
     private ISocketHandler _remoteSocketHandler;
-    private Socks5 _socks5;
+    private IProxy _proxy;
     private ICrypt _crypt;
     public String socketInfo;
     private ByteArrayOutputStream _outStream;
@@ -64,8 +68,8 @@ public class PipeWorker implements Runnable {
         _localSocketHandler = localHandler;
         _remoteSocketHandler = remoteHandler;
         _crypt = CryptFactory.get(config.getMethod(), config.getPassword());
-        _socks5 = new Socks5(config);
-        _outStream = new ByteArrayOutputStream(16384);
+        _proxy = ProxyFactory.get(config.getProxyType());
+        _outStream = new ByteArrayOutputStream(Constant.BUFFER_SIZE);
         _processQueue = new LinkedBlockingQueue();
         requestedClose = false;
         socketInfo = String.format("Local: %s, Remote: %s", localChannel, remoteChannel);
@@ -76,12 +80,23 @@ public class PipeWorker implements Runnable {
         processData(null, 0, false);
     }
 
-    public boolean isSock5Initialized() {
-        return _socks5.isReady();
-    }
+    public void forceClose() {
+        logger.fine("PipeWorker::forceClose " + socketInfo);
 
-    public byte[] getSocks5Response(byte[] data) {
-        return _socks5.getResponse(data);
+        // close socket now!
+        try {
+            if (_localChannel.isOpen()) {
+                _localChannel.close();
+            }
+            if (_remoteChannel.isOpen()) {
+                _remoteChannel.close();
+            }
+        } catch (IOException e) {
+            logger.fine("PipeWorker::forceClose> " + e.toString());
+        }
+
+        // follow the standard close steps
+        close();
     }
 
     public void processData(byte[] data, int count, boolean isEncrypted) {
@@ -100,11 +115,12 @@ public class PipeWorker implements Runnable {
         PipeEvent event;
         ISocketHandler socketHandler;
         SocketChannel channel;
+        List<byte[]> sendData = null;
 
         while(true) {
             // make sure all the requests in the queue are processed
             if (_processQueue.isEmpty() && requestedClose) {
-                logger.fine("PipeWorker closed: " + this.socketInfo);
+                logger.fine("PipeWorker closed ("+  _processQueue.size() + "): " + this.socketInfo);
                 if (_localChannel.isOpen()) {
                     _localSocketHandler.send(new ChangeRequest(_localChannel, ChangeRequest.CLOSE_CHANNEL));
                 }
@@ -117,28 +133,52 @@ public class PipeWorker implements Runnable {
             try {
                 event = (PipeEvent)_processQueue.take();
 
-                // check is other thread is requested to close sockets
+                // if event data is null, it means this is a wake-up call
+                // to check if any other thread is requested to close sockets
                 if (event.data == null) {
                     continue;
                 }
 
-                // clear stream for new data
-                _outStream.reset();
-
-                if (event.isEncrypted) {
-                    _crypt.encrypt(event.data, _outStream);
-                    channel = _remoteChannel;
-                    socketHandler = _remoteSocketHandler;
+                // process proxy packet if needed
+                if (!_proxy.isReady()) {
+                    // packet for local socket
+                    byte[] temp = _proxy.getResponse(event.data);
+                    if (temp != null) {
+                        _localSocketHandler.send(new ChangeRequest(_localChannel, ChangeRequest.CHANGE_SOCKET_OP,
+                                SelectionKey.OP_WRITE), temp);
+                    }
+                    // packet for remote socket (ss payload + request)
+                    sendData = _proxy.getRemoteResponse(event.data);
+                    if (sendData == null) {
+                        continue;
+                    }
+                    // index 0 is always ss payload
+                    logger.info("Connected to: " + Util.getRequestedHostInfo(sendData.get(0)));
+                    //logger.info("Test: " + Util.bytesToString(temp, 0, temp.length));
                 }
                 else {
-                    _crypt.decrypt(event.data, _outStream);
-                    channel = _localChannel;
-                    socketHandler = _localSocketHandler;
+                    sendData.clear();
+                    sendData.add(event.data);
                 }
 
-                // data is ready to send to socket
-                ChangeRequest request = new ChangeRequest(channel, ChangeRequest.CHANGE_SOCKET_OP, SelectionKey.OP_WRITE);
-                socketHandler.send(request, _outStream.toByteArray());
+                for (byte[] bytes : sendData) {
+                    // empty stream for new data
+                    _outStream.reset();
+
+                    if (event.isEncrypted) {
+                        _crypt.encrypt(bytes, _outStream);
+                        channel = _remoteChannel;
+                        socketHandler = _remoteSocketHandler;
+                    } else {
+                        _crypt.decrypt(bytes, _outStream);
+                        channel = _localChannel;
+                        socketHandler = _localSocketHandler;
+                    }
+
+                    // data is ready to send to socket
+                    ChangeRequest request = new ChangeRequest(channel, ChangeRequest.CHANGE_SOCKET_OP, SelectionKey.OP_WRITE);
+                    socketHandler.send(request, _outStream.toByteArray());
+                }
             } catch (InterruptedException e) {
                 logger.fine(Util.getErrorMessage(e));
                 break;

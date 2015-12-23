@@ -29,33 +29,32 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-package com.stfl.ss;
+package com.stfl.network.proxy;
 
 import com.stfl.misc.Reflection;
 import java.util.*;
 import java.util.logging.Logger;
 
 /**
- * Crypt factory
+ * Proxy factory
  */
-public class CryptFactory {
-    private static final Map<String, String> crypts = new HashMap<String, String>() {{
-        putAll(AesCrypt.getCiphers());
-        putAll(CamelliaCrypt.getCiphers());
-        putAll(BlowFishCrypt.getCiphers());
-        putAll(SeedCrypt.getCiphers());
-        // TODO: other crypts
+public class ProxyFactory {
+    public static final Map<IProxy.TYPE, String> proxies = new HashMap<IProxy.TYPE, String>() {{
+        put(IProxy.TYPE.HTTP, HttpProxy.class.getName());
+        put(IProxy.TYPE.SOCKS5, Socks5Proxy.class.getName());
+        put(IProxy.TYPE.AUTO, AutoProxy.class.getName());
     }};
-    private static Logger logger = Logger.getLogger(CryptFactory.class.getName());
+    private static Logger logger = Logger.getLogger(ProxyFactory.class.getName());
 
-    public static boolean isCipherExisted(String name) {
-        return (crypts.get(name) != null);
+    public static boolean isProxyTypeExisted(String name) {
+        IProxy.TYPE type = IProxy.TYPE.valueOf(name);
+        return (proxies.get(type) != null);
     }
 
-    public static ICrypt get(String name, String password) {
+    public static IProxy get(IProxy.TYPE type) {
         try {
-            Object obj = Reflection.get(crypts.get(name), String.class, name, String.class, password);
-            return (ICrypt)obj;
+            Object obj = Reflection.get(proxies.get(type));
+            return (IProxy)obj;
 
         } catch (Exception e) {
             logger.info(com.stfl.misc.Util.getErrorMessage(e));
@@ -64,8 +63,8 @@ public class CryptFactory {
         return null;
     }
 
-    public static List<String> getSupportedCiphers() {
-        List sortedKeys = new ArrayList<>(crypts.keySet());
+    public static List<IProxy.TYPE> getSupportedProxyTypes() {
+        List sortedKeys = new ArrayList<>(proxies.keySet());
         Collections.sort(sortedKeys);
         return sortedKeys;
     }

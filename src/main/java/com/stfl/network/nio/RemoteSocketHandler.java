@@ -167,26 +167,27 @@ public class RemoteSocketHandler extends SocketHandlerBase {
     private void write(SelectionKey key) throws IOException {
         SocketChannel socketChannel = (SocketChannel) key.channel();
 
-        synchronized (_pendingData) {
-            List queue = (List) _pendingData.get(socketChannel);
-            if (queue == null) {
-                logger.warning("RemoteSocket::write queue = null: " + socketChannel);
-                return;
-            }
-
-            // write data to socket
-            while (!queue.isEmpty()) {
-                ByteBuffer buf = (ByteBuffer) queue.get(0);
-                socketChannel.write(buf);
-                if (buf.remaining() > 0) {
-                    break;
+        List queue = (List) _pendingData.get(socketChannel);
+        if (queue != null) {
+            synchronized (queue) {
+                // write data to socket
+                while (!queue.isEmpty()) {
+                    ByteBuffer buf = (ByteBuffer) queue.get(0);
+                    socketChannel.write(buf);
+                    if (buf.remaining() > 0) {
+                        break;
+                    }
+                    queue.remove(0);
                 }
-                queue.remove(0);
-            }
 
-            if (queue.isEmpty()) {
-                key.interestOps(SelectionKey.OP_READ);
+                if (queue.isEmpty()) {
+                    key.interestOps(SelectionKey.OP_READ);
+                }
             }
+        }
+        else {
+            logger.warning("RemoteSocket::write queue = null: " + socketChannel);
+            return;
         }
     }
 

@@ -31,6 +31,7 @@
 
 package com.stfl.network;
 
+import com.stfl.Constant;
 import com.stfl.misc.Config;
 import com.stfl.misc.Util;
 import com.stfl.network.nio.*;
@@ -45,7 +46,7 @@ import java.nio.channels.SocketChannel;
 import java.nio.channels.spi.SelectorProvider;
 import java.security.InvalidAlgorithmParameterException;
 import java.util.*;
-import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.logging.Logger;
 
@@ -57,7 +58,7 @@ public class NioLocalServer extends SocketHandlerBase {
 
     private ServerSocketChannel _serverChannel;
     private RemoteSocketHandler _remoteSocketHandler;
-    private Executor _executor;
+    private ExecutorService _executor;
 
     public NioLocalServer(Config config) throws IOException, InvalidAlgorithmParameterException {
         super(config);
@@ -66,6 +67,11 @@ public class NioLocalServer extends SocketHandlerBase {
         // init remote socket handler
         _remoteSocketHandler = new RemoteSocketHandler(_config);
         _executor.execute(_remoteSocketHandler);
+
+        // print server info
+        logger.info("Shadowsocks-Java v" + Constant.VERSION);
+        logger.info("Cipher: " + config.getMethod());
+        logger.info(config.getProxyType() + " Proxy Server starts at port: " + config.getLocalPort());
     }
 
     @Override
@@ -156,55 +162,34 @@ public class NioLocalServer extends SocketHandlerBase {
             return;
         }
 
-        /*
-        There are two stage of establish Sock5:
-            1. ACK (3 bytes)
-            2. HELLO (3 bytes + dst info)
-        as Client sending HELLO, it might contain dst info.
-        In this case, server needs to send back HELLO response to client and start the remote socket right away,
-        otherwise, client will wait until timeout.
-         */
         data = _readBuffer.array();
-        if (!pipe.isSock5Initialized()) {
-            byte[] temp = pipe.getSocks5Response(data);
-            send(new ChangeRequest(socketChannel, ChangeRequest.CHANGE_SOCKET_OP, SelectionKey.OP_WRITE), temp);
-            if (readCount > 3) {
-                readCount -= 3;
-                temp = new byte[readCount];
-                System.arraycopy(data, 3, temp, 0, readCount);
-                data = temp;
-                logger.info("Connected to: " + Util.getRequestedHostInfo(data));
-            }
-        }
-
-        if (pipe.isSock5Initialized()) {
-            pipe.processData(data, readCount, true);
-        }
+        pipe.processData(data, readCount, true);
     }
 
     private void write(SelectionKey key) throws IOException {
         SocketChannel socketChannel = (SocketChannel) key.channel();
 
-        synchronized (_pendingData) {
-            List queue = (List) _pendingData.get(socketChannel);
-            if (queue == null) {
-                logger.warning("LocalSocket::write queue = null: " + socketChannel);
-                return;
-            }
-
-            // Write data
-            while (!queue.isEmpty()) {
-                ByteBuffer buf = (ByteBuffer) queue.get(0);
-                socketChannel.write(buf);
-                if (buf.remaining() > 0) {
-                    break;
+        List queue = (List) _pendingData.get(socketChannel);
+        if (queue != null) {
+            synchronized (queue) {
+                // Write data
+                while (!queue.isEmpty()) {
+                    ByteBuffer buf = (ByteBuffer) queue.get(0);
+                    socketChannel.write(buf);
+                    if (buf.remaining() > 0) {
+                        break;
+                    }
+                    queue.remove(0);
                 }
-                queue.remove(0);
-            }
 
-            if (queue.isEmpty()) {
-                key.interestOps(SelectionKey.OP_READ);
+                if (queue.isEmpty()) {
+                    key.interestOps(SelectionKey.OP_READ);
+                }
             }
+        }
+        else {
+            logger.warning("LocalSocket::write queue = null: " + socketChannel);
+            return;
         }
     }
 
@@ -228,14 +213,14 @@ public class NioLocalServer extends SocketHandlerBase {
     @Override
     public void close() {
         super.close();
+        _executor.shutdownNow();
+
         try {
             _serverChannel.close();
             _remoteSocketHandler.close();
-            for (PipeWorker p : _pipes.values()) {
-                p.close();
-            }
         } catch (IOException e) {
             logger.warning(Util.getErrorMessage(e));
         }
+        logger.info("Server closed.");
     }
 }

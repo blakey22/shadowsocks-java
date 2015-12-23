@@ -33,13 +33,16 @@ package com.stfl.network.io;
 
 import com.stfl.misc.Config;
 import com.stfl.misc.Util;
-import com.stfl.network.Socks5;
+import com.stfl.Constant;
+import com.stfl.network.proxy.IProxy;
+import com.stfl.network.proxy.ProxyFactory;
 import com.stfl.ss.CryptFactory;
 import com.stfl.ss.ICrypt;
 
 import java.io.*;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
+import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.logging.Logger;
 
@@ -49,14 +52,14 @@ import java.util.logging.Logger;
 public class PipeSocket implements Runnable {
     private Logger logger = Logger.getLogger(PipeSocket.class.getName());
 
-    private final int BUFFER_SIZE = 16384;
-    private final int SOCK5_BUFFER_SIZE = 3;
     private final int TIMEOUT = 10000; // 10s
+    private ByteArrayOutputStream _remoteOutStream;
+    private ByteArrayOutputStream _localOutStream;
     private Socket _remote;
     private Socket _local;
-    private Socks5 _socks5;
+    private IProxy _proxy;
     private ICrypt _crypt;
-    private boolean isClosed;
+    private boolean _isClosed;
     private Executor _executor;
     private Config _config;
 
@@ -66,7 +69,9 @@ public class PipeSocket implements Runnable {
         _local.setSoTimeout(TIMEOUT);
         _config = config;
         _crypt = CryptFactory.get(_config.getMethod(), _config.getPassword());
-        _socks5 = new Socks5(_config);
+        _proxy = ProxyFactory.get(_config.getProxyType());
+        _remoteOutStream = new ByteArrayOutputStream(Constant.BUFFER_SIZE);
+        _localOutStream = new ByteArrayOutputStream(Constant.BUFFER_SIZE);
     }
 
     @Override
@@ -90,18 +95,17 @@ public class PipeSocket implements Runnable {
 
     private Runnable getLocalWorker() {
         return new Runnable() {
-            private boolean isFirstPacket = true;
             @Override
             public void run() {
-                InputStream reader;
-                byte[] sock5Buffer = new byte[SOCK5_BUFFER_SIZE];
-                byte[] dataBuffer = new byte[BUFFER_SIZE];
+                BufferedInputStream stream;
+                byte[] dataBuffer = new byte[Constant.BUFFER_SIZE];
                 byte[] buffer;
                 int readCount;
+                List<byte[]> sendData = null;
 
                 // prepare local stream
                 try {
-                    reader = _local.getInputStream();
+                    stream = new BufferedInputStream(_local.getInputStream());
                 } catch (IOException e) {
                     logger.info(e.toString());
                     return;
@@ -110,46 +114,51 @@ public class PipeSocket implements Runnable {
                 // start to process data from local socket
                 while (true) {
                     try {
-                        if (!_socks5.isReady()) {
-                            buffer = sock5Buffer;
-                        }
-                        else {
-                            buffer = dataBuffer;
-                        }
-
-                        // read data
-                        readCount = reader.read(buffer);
-                        if (readCount < 1) {
+                         // read data
+                        readCount = stream.read(dataBuffer);
+                        if (readCount == -1) {
                             throw new IOException("Local socket closed (Read)!");
                         }
 
-                        // initialize socks5
-                        if (!_socks5.isReady()) {
-                            buffer = _socks5.getResponse(buffer);
-                            if (!_sendLocal(buffer, buffer.length)) {
-                                throw new IOException("Local socket closed (sock5Init-Write)!");
+                        // initialize proxy
+                        if (!_proxy.isReady()) {
+                            byte[] temp;
+                            buffer = new byte[readCount];
+
+                            // dup dataBuffer to use in later
+                            System.arraycopy(dataBuffer, 0, buffer, 0, readCount);
+
+                            temp = _proxy.getResponse(buffer);
+                            if ((temp != null) && (!_sendLocal(temp, temp.length))) {
+                                throw new IOException("Local socket closed (proxy-Write)!");
                             }
-                            continue;
+                            // packet for remote socket
+                            sendData = _proxy.getRemoteResponse(buffer);
+                            if (sendData == null) {
+                                continue;
+                            }
+                            logger.info("Connected to: " + Util.getRequestedHostInfo(sendData.get(0)));
+                        }
+                        else {
+                            sendData.clear();
+                            sendData.add(dataBuffer);
                         }
 
-                        if (isFirstPacket) {
-                            isFirstPacket = false;
-                            logger.info("Connected to: " + Util.getRequestedHostInfo(buffer));
-                        }
-
-                        // send data to remote socket
-                        if (!sendRemote(buffer, readCount)) {
-                            throw new IOException("Remote socket closed (Write)!");
+                        for (byte[] bytes : sendData) {
+                            // send data to remote socket
+                            if (!sendRemote(bytes, bytes.length)) {
+                                throw new IOException("Remote socket closed (Write)!");
+                            }
                         }
                     } catch (SocketTimeoutException e) {
                         continue;
                     } catch (IOException e) {
-                        logger.fine(Util.getErrorMessage(e));
+                        logger.fine(e.toString());
                         break;
                     }
                 }
                 close();
-                logger.fine(String.format("localWorker exit, Local=%s, Remote=%s\n", _local, _remote));
+                logger.fine(String.format("localWorker exit, Local=%s, Remote=%s", _local, _remote));
             }
         };
     }
@@ -158,13 +167,14 @@ public class PipeSocket implements Runnable {
         return new Runnable() {
             @Override
             public void run() {
-                InputStream reader;
+                BufferedInputStream stream;
                 int readCount;
-                byte[] buffer = new byte[BUFFER_SIZE];
+                byte[] dataBuffer = new byte[4096];
 
                 // prepare remote stream
                 try {
-                    reader = _remote.getInputStream();
+                    //stream = _remote.getInputStream();
+                    stream = new BufferedInputStream (_remote.getInputStream());
                 } catch (IOException e) {
                     logger.info(e.toString());
                     return;
@@ -173,35 +183,34 @@ public class PipeSocket implements Runnable {
                 // start to process data from remote socket
                 while (true) {
                     try {
-                        readCount = reader.read(buffer);
-
-                        if (readCount < 1) {
+                        readCount = stream.read(dataBuffer);
+                        if (readCount == -1) {
                             throw new IOException("Remote socket closed (Read)!");
                         }
 
                         // send data to local socket
-                        if (!sendLocal(buffer, readCount)) {
+                        if (!sendLocal(dataBuffer, readCount)) {
                             throw new IOException("Local socket closed (Write)!");
                         }
                     } catch (SocketTimeoutException e) {
                         continue;
                     } catch (IOException e) {
-                        logger.fine(Util.getErrorMessage(e));
+                        logger.fine(e.toString());
                         break;
                     }
 
                 }
                 close();
-                logger.fine(String.format("remoteWorker exit, Local=%s, Remote=%s\n", _local, _remote));
+                logger.fine(String.format("remoteWorker exit, Local=%s, Remote=%s", _local, _remote));
             }
         };
     }
 
-    private void close() {
-        if (isClosed) {
+    public void close() {
+        if (_isClosed) {
             return;
         }
-        isClosed = true;
+        _isClosed = true;
 
         try {
             _local.shutdownInput();
@@ -222,9 +231,8 @@ public class PipeSocket implements Runnable {
     }
 
     private boolean sendRemote(byte[] data, int length) {
-        ByteArrayOutputStream stream = new ByteArrayOutputStream();
-        _crypt.encrypt(data, length, stream);
-        byte[] sendData = stream.toByteArray();
+        _crypt.encrypt(data, length, _remoteOutStream);
+        byte[] sendData = _remoteOutStream.toByteArray();
 
         return _sendRemote(sendData, sendData.length);
     }
@@ -247,9 +255,8 @@ public class PipeSocket implements Runnable {
     }
 
     private boolean sendLocal(byte[] data, int length) {
-        ByteArrayOutputStream stream = new ByteArrayOutputStream();
-        _crypt.decrypt(data, length, stream);
-        byte[] sendData = stream.toByteArray();
+        _crypt.decrypt(data, length, _localOutStream);
+        byte[] sendData = _localOutStream.toByteArray();
 
         return _sendLocal(sendData, sendData.length);
     }

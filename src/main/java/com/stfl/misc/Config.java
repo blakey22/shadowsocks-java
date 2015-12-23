@@ -31,6 +31,7 @@
 
 package com.stfl.misc;
 
+import com.stfl.network.proxy.IProxy;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
 import com.stfl.ss.AesCrypt;
@@ -46,10 +47,10 @@ public class Config {
     private String _method;
     private String _password;
     private String _logLevel;
-    private boolean _isSock5Server;
+    private IProxy.TYPE _proxyType;
 
     public Config() {
-        load();
+        loadFromJson("");
     }
 
     public Config(String ipAddr, int port, String localIpAddr, int localPort, String method, String password) {
@@ -60,6 +61,12 @@ public class Config {
         _localPort = localPort;
         _method = method;
         _password = password;
+        _proxyType = IProxy.TYPE.AUTO;
+    }
+
+    public Config(String ipAddr, int port, String localIpAddr, int localPort, String method, String password, IProxy.TYPE type) {
+        this(ipAddr, port, localIpAddr, localPort, method, password);
+        _proxyType = type;
     }
 
     public void setRemoteIpAddress(String value) {
@@ -94,12 +101,21 @@ public class Config {
         return _localPort;
     }
 
-    public void setSocks5Server(boolean value) {
-        _isSock5Server =value;
+    public void setProxyType(String value) {
+        _proxyType = IProxy.TYPE.AUTO;
+        if (value.toLowerCase().equals(IProxy.TYPE.HTTP.toString().toLowerCase())) {
+            _proxyType = IProxy.TYPE.HTTP;
+        }
+        else if (value.toLowerCase().equals(IProxy.TYPE.SOCKS5.toString().toLowerCase())) {
+            _proxyType = IProxy.TYPE.SOCKS5;
+        }
     }
 
-    public boolean isSock5Server() {
-        return _isSock5Server;
+    public void setProxyType(IProxy.TYPE value) {
+        _proxyType = value;
+    }
+    public IProxy.TYPE getProxyType() {
+        return _proxyType;
     }
 
     public void setMethod(String value) {
@@ -127,20 +143,20 @@ public class Config {
         return _logLevel;
     }
 
-    public void load() {
-        loadFromJson("{}");
-    }
-
     public void loadFromJson(String jsonStr) {
+        if (jsonStr.length() == 0) {
+            jsonStr = "{}";
+        }
+
         JSONObject jObj = (JSONObject)JSONValue.parse(jsonStr);
         _ipAddr = (String)jObj.getOrDefault("remoteIpAddress", "");
         _port = ((Number)jObj.getOrDefault("remotePort", 1080)).intValue();
         _localIpAddr = (String)jObj.getOrDefault("localIpAddress", "127.0.0.1");
-        _localPort = ((Number)jObj.getOrDefault("localPort", 1082)).intValue();
+        _localPort = ((Number)jObj.getOrDefault("localPort", 1080)).intValue();
         _method = (String)jObj.getOrDefault("method", AesCrypt.CIPHER_AES_256_CFB);
         _password = (String)jObj.getOrDefault("password", "");
         _logLevel = (String)jObj.getOrDefault("logLevel", "INFO");
-        _isSock5Server = (Boolean) jObj.getOrDefault("isSocks5Server", true);
+        setProxyType((String) jObj.getOrDefault("proxyType", IProxy.TYPE.SOCKS5.toString().toLowerCase()));
         setLogLevel(_logLevel);
     }
 
@@ -152,7 +168,8 @@ public class Config {
         jObj.put("localPort", _localPort);
         jObj.put("method", _method);
         jObj.put("password", _password);
-        jObj.put("isSocks5Server", _isSock5Server);
+        jObj.put("proxyType", _proxyType.toString().toLowerCase());
+        jObj.put("logLevel", _logLevel);
 
         return Util.prettyPrintJson(jObj);
     }
