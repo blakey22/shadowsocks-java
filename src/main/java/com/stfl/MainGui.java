@@ -134,10 +134,10 @@ public class MainGui extends Application {
     }
 
     public void showNotification(String message) {
-        trayIcon.displayMessage(
-                "shadowsocks-java",
-                message,
-                java.awt.TrayIcon.MessageType.INFO
-        );
+        //trayIcon.displayMessage(
+        //        "shadowsocks-java",
+        //        message,
+        //        java.awt.TrayIcon.MessageType.INFO
+        //);
     }
 }
