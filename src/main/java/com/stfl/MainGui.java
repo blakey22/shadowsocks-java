@@ -11,6 +11,7 @@ import javafx.scene.layout.Pane;
 import javafx.stage.Stage;
 
 import javax.imageio.ImageIO;
+import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -134,10 +135,12 @@ public class MainGui extends Application {
     }
 
     public void showNotification(String message) {
-        trayIcon.displayMessage(
-                "shadowsocks-java",
-                message,
-                java.awt.TrayIcon.MessageType.INFO
+        SwingUtilities.invokeLater(() ->
+                trayIcon.displayMessage(
+                        "shadowsocks-java",
+                        message,
+                        java.awt.TrayIcon.MessageType.INFO
+                )
         );
     }
 }

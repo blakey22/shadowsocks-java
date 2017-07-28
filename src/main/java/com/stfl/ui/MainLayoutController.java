@@ -129,7 +129,7 @@ public class MainLayoutController {
             // create config
             config.setRemoteIpAddress(ip);
             config.setRemotePort(port);
-            config.setLocalIpAddress("127.0.0.1");
+            config.setLocalIpAddress(config.getLocalIpAddress());
             config.setLocalPort(localPort);
             config.setMethod(method);
             config.setPassword(password);
