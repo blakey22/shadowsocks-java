@@ -45,7 +45,7 @@ public class CryptFactory {
         putAll(BlowFishCrypt.getCiphers());
         putAll(SeedCrypt.getCiphers());
         // TODO: other crypts
-        putAll(RC4MD5Crypto.getCiphers());
+        putAll(RC4MD5Crypt.getCiphers());
     }};
     private static Logger logger = Logger.getLogger(CryptFactory.class.getName());
 

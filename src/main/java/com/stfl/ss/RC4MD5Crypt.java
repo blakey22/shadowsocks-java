@@ -17,16 +17,16 @@ import java.util.Map;
  * Function:
  * Create Date:七月14,2017
  */
-public class RC4MD5Crypto extends CryptBase {
+public class RC4MD5Crypt extends CryptBase {
     public static String CIPHER_RC4_MD5 = "rc4-md5";
 
     public static Map<String, String> getCiphers() {
         Map<String, String> ciphers = new HashMap<String, String>();
-        ciphers.put(CIPHER_RC4_MD5, RC4MD5Crypto.class.getName());
+        ciphers.put(CIPHER_RC4_MD5, RC4MD5Crypt.class.getName());
         return ciphers;
     }
 
-    public RC4MD5Crypto(String name, String password) {
+    public RC4MD5Crypt(String name, String password) {
         super(name, password);
     }
 
