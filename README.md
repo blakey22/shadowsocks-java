@@ -3,7 +3,8 @@ shadowsocks-java
 
 shadowsocks-java is a pure JAVA client for [shadowsocks](https://github.com/shadowsocks/shadowsocks) project.
 
-Only tested AES encryption.
+Support AES encryption.
+Support RC4-MD5 encryption.
 
 ### Requirements
     * Bouncy Castle v1.5.2 [Release](https://www.bouncycastle.org/)
