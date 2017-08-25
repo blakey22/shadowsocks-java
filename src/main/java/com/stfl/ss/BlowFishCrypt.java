@@ -32,6 +32,7 @@
 package com.stfl.ss;
 
 import org.bouncycastle.crypto.StreamBlockCipher;
+import org.bouncycastle.crypto.StreamCipher;
 import org.bouncycastle.crypto.engines.BlowfishEngine;
 import org.bouncycastle.crypto.modes.CFBBlockCipher;
 
@@ -66,7 +67,7 @@ public class BlowFishCrypt extends CryptBase {
     }
 
     @Override
-    protected StreamBlockCipher getCipher(boolean isEncrypted) throws InvalidAlgorithmParameterException {
+    protected StreamCipher getCipher(boolean isEncrypted) throws InvalidAlgorithmParameterException {
         BlowfishEngine engine = new BlowfishEngine();
         StreamBlockCipher cipher;
 

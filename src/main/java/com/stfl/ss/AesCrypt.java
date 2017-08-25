@@ -32,7 +32,7 @@
 package com.stfl.ss;
 
 import org.bouncycastle.crypto.StreamBlockCipher;
-import org.bouncycastle.crypto.engines.AESEngine;
+import org.bouncycastle.crypto.StreamCipher;
 import org.bouncycastle.crypto.engines.AESFastEngine;
 import org.bouncycastle.crypto.modes.CFBBlockCipher;
 import org.bouncycastle.crypto.modes.OFBBlockCipher;
@@ -88,7 +88,7 @@ public class AesCrypt extends CryptBase {
     }
 
     @Override
-    protected StreamBlockCipher getCipher(boolean isEncrypted) throws InvalidAlgorithmParameterException {
+    protected StreamCipher getCipher(boolean isEncrypted) throws InvalidAlgorithmParameterException {
         AESFastEngine engine = new AESFastEngine();
         StreamBlockCipher cipher;
 
