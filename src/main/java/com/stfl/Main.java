@@ -18,8 +18,6 @@ public class Main {
 
     public static void main(String[] args) {
 
-        System.out.println("test");
-
         if (args.length != 0) {
             startCommandLine(args);
         }
