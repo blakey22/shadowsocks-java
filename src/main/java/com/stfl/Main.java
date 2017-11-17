@@ -2,11 +2,11 @@ package com.stfl;
 
 import com.stfl.misc.Config;
 import com.stfl.misc.Util;
-import com.stfl.network.LocalServer;
 import com.stfl.network.NioLocalServer;
 import com.stfl.network.proxy.IProxy;
 import com.stfl.network.proxy.ProxyFactory;
 import com.stfl.ss.CryptFactory;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -17,6 +17,9 @@ public class Main {
     private static Logger logger = Logger.getLogger(Main.class.getName());
 
     public static void main(String[] args) {
+
+        System.out.println("test");
+
         if (args.length != 0) {
             startCommandLine(args);
         }
