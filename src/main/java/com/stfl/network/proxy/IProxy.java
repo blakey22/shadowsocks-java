@@ -32,6 +32,9 @@
 package com.stfl.network.proxy;
 
 import java.util.List;
+/*
+ *代理类型
+ */
 
 public interface IProxy {
     enum TYPE {SOCKS5, HTTP, AUTO}

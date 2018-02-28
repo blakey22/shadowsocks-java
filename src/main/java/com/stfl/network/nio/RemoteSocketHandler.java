@@ -132,7 +132,7 @@ public class RemoteSocketHandler extends SocketHandlerBase {
         return pipe;
     }
 
-    private void read(SelectionKey key) throws IOException {
+    private void read(SelectionKey key) {
         SocketChannel socketChannel = (SocketChannel) key.channel();
         PipeWorker pipe = _pipes.get(socketChannel);
         if (pipe == null) {
@@ -191,7 +191,7 @@ public class RemoteSocketHandler extends SocketHandlerBase {
         }
     }
 
-    private void finishConnection(SelectionKey key) throws IOException {
+    private void finishConnection(SelectionKey key) {
         SocketChannel socketChannel = (SocketChannel) key.channel();
 
         try {

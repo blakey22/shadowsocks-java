@@ -217,12 +217,7 @@ public class HttpProxy implements IProxy {
         String method = header.get("method");
 
         if (method != null) {
-            if (method.toUpperCase().equals("CONNECT")) {
-                _isHttpConnect = true;
-            }
-            else {
-                _isHttpConnect = false;
-            }
+            _isHttpConnect = method.toUpperCase().equals("CONNECT");
         }
     }
 

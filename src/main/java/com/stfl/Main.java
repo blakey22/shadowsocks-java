@@ -1,12 +1,11 @@
 package com.stfl;
 
 import com.stfl.misc.Config;
-import com.stfl.misc.Util;
-import com.stfl.network.LocalServer;
 import com.stfl.network.NioLocalServer;
 import com.stfl.network.proxy.IProxy;
 import com.stfl.network.proxy.ProxyFactory;
 import com.stfl.ss.CryptFactory;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -17,15 +16,12 @@ public class Main {
     private static Logger logger = Logger.getLogger(Main.class.getName());
 
     public static void main(String[] args) {
-        if (args.length != 0) {
-            startCommandLine(args);
-        }
-        else {
-            MainGui.launch(MainGui.class);
-        }
+
+        startCommandLine();
     }
 
-    private static void startCommandLine(String[] args) {
+    private static void startCommandLine() {
+        /*
         Config config;
 
         config = parseArgument(args);
@@ -35,10 +31,13 @@ public class Main {
         }
 
         Util.saveFile(Constant.CONF_FILE, config.saveToJson());
-
+        */
+        Config config1 = new Config("144.202.101.75", 8989,
+                                "127.0.0.1", 1080,
+                "aes-256-cfb", "hujie187");
         try {
             //LocalServer server = new LocalServer(config);
-            NioLocalServer server = new NioLocalServer(config);
+            NioLocalServer server = new NioLocalServer(config1);
             Thread t = new Thread(server);
             t.start();
             t.join();
