@@ -137,7 +137,7 @@ public class NioLocalServer extends SocketHandlerBase {
         _executor.execute(pipe);
     }
 
-    private void read(SelectionKey key) throws IOException {
+    private void read(SelectionKey key) {
         SocketChannel socketChannel = (SocketChannel) key.channel();
         int readCount;
         PipeWorker pipe = _pipes.get(socketChannel);

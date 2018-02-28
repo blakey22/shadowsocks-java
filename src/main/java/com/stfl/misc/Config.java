@@ -38,6 +38,7 @@ import com.stfl.ss.AesCrypt;
 
 /**
  * Data class for configuration to bring up server
+ *读取config.json得到配置信息
  */
 public class Config {
     private String _ipAddr;
