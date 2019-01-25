@@ -39,12 +39,13 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.channels.ClosedSelectorException;
-import java.nio.channels.SelectionKey;
-import java.nio.channels.Selector;
-import java.nio.channels.SocketChannel;
+import java.nio.channels.*;
+import java.nio.channels.spi.SelectorProvider;
 import java.security.InvalidAlgorithmParameterException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -56,14 +57,64 @@ public abstract class SocketHandlerBase implements IServer, ISocketHandler {
     protected Selector _selector;
     protected Config _config;
     protected final List<ChangeRequest> _pendingRequest = new LinkedList<>();
-    protected final ConcurrentHashMap<SocketChannel,List<ByteBuffer>> _pendingData = new ConcurrentHashMap<>();
+    protected final ConcurrentHashMap<SocketChannel, List<ByteBuffer>> _pendingData = new ConcurrentHashMap<>();
     protected ConcurrentMap<SocketChannel, PipeWorker> _pipes = new ConcurrentHashMap<>();
     protected ByteBuffer _readBuffer = ByteBuffer.allocate(Constant.BUFFER_SIZE);
 
-    protected abstract Selector initSelector() throws IOException;
-    protected abstract boolean processPendingRequest(ChangeRequest request);
-    protected abstract void processSelect(SelectionKey key);
+    protected Selector initSelector() throws IOException {
+        return SelectorProvider.provider().openSelector();
+    }
 
+    protected boolean processPendingRequest(ChangeRequest request) {
+        switch (request.type) {
+            case ChangeRequest.CHANGE_SOCKET_OP:
+                SelectionKey key = request.socket.keyFor(_selector);
+                if ((key != null) && key.isValid()) {
+                    key.interestOps(request.op);
+                } else {
+                    logger.warn("processPendingRequest (drop): {} {}", key, request.socket);
+                }
+                break;
+            case ChangeRequest.REGISTER_CHANNEL:
+                try {
+                    request.socket.register(_selector, request.op);
+                } catch (ClosedChannelException e) {
+                    // socket get closed by remote
+                    logger.warn("socket channel closed", e);
+                    cleanUp(request.socket);
+                }
+                break;
+            case ChangeRequest.CLOSE_CHANNEL:
+                cleanUp(request.socket);
+                break;
+        }
+        return true;
+    }
+
+    protected abstract void finishConnection(SelectionKey key);
+
+    protected abstract void accept(SelectionKey key) throws IOException;
+
+    protected abstract void read(SelectionKey key);
+
+    protected void processSelect(SelectionKey key) {
+        // Handle event
+        try {
+            if (key.isValid()) {
+                if (key.isConnectable()) {
+                    finishConnection(key);
+                } else if (key.isAcceptable()) {
+                    accept(key);
+                } else if (key.isReadable()) {
+                    read(key);
+                } else if (key.isWritable()) {
+                    write(key);
+                }
+            }
+        } catch (IOException e) {
+            cleanUp((SocketChannel) key.channel());
+        }
+    }
 
     public SocketHandlerBase(Config config) throws IOException, InvalidAlgorithmParameterException {
         if (CryptBuilder.isCipherNotExisted(config.getMethod())) {
@@ -101,15 +152,13 @@ public abstract class SocketHandlerBase implements IServer, ISocketHandler {
 
                     processSelect(key);
                 }
-            }
-            catch (ClosedSelectorException e) {
+            } catch (ClosedSelectorException e) {
                 break;
-            }
-            catch (Exception e) {
-                logger.warn("run exception",e);
+            } catch (Exception e) {
+                logger.warn("run exception", e);
             }
         }
-        logger.info("{} Closed.",getClass());
+        logger.info("{} Closed.", getClass());
     }
 
     protected void createWriteBuffer(SocketChannel socketChannel) {
@@ -117,7 +166,7 @@ public abstract class SocketHandlerBase implements IServer, ISocketHandler {
         Object put;
         put = _pendingData.putIfAbsent(socketChannel, queue);
         if (put != null) {
-            logger.info("Dup write buffer creation: {}" , socketChannel);
+            logger.info("Dup write buffer creation: {}", socketChannel);
         }
     }
 
@@ -125,14 +174,22 @@ public abstract class SocketHandlerBase implements IServer, ISocketHandler {
         try {
             socketChannel.close();
         } catch (IOException e) {
-            logger.info("io exception",e);
+            logger.info("io exception", e);
         }
         SelectionKey key = socketChannel.keyFor(_selector);
         if (key != null) {
             key.cancel();
         }
-
         _pendingData.remove(socketChannel);
+
+        PipeWorker pipe = _pipes.get(socketChannel);
+        if (pipe != null) {
+            pipe.close();
+            _pipes.remove(socketChannel);
+            logger.debug("Socket closed: {}", pipe.socketInfo);
+        } else {
+            logger.debug("Socket closed (NULL): {}", socketChannel);
+        }
     }
 
     @Override
@@ -141,12 +198,10 @@ public abstract class SocketHandlerBase implements IServer, ISocketHandler {
             case ChangeRequest.CHANGE_SOCKET_OP:
                 List<ByteBuffer> queue = _pendingData.get(request.socket);
                 if (queue != null) {
-                    synchronized (_pendingData) {
-                        // in general case, the write queue is always existed, unless, the socket has been shutdown
-                        queue.add(ByteBuffer.wrap(data));
-                    }
-                }
-                else {
+                    // may be synchronized (_pendingData)
+                    // in general case, the write queue is always existed, unless, the socket has been shutdown
+                    queue.add(ByteBuffer.wrap(data));
+                } else {
                     logger.warn("Socket is closed! dropping this request");
                 }
                 break;
@@ -172,7 +227,53 @@ public abstract class SocketHandlerBase implements IServer, ISocketHandler {
         try {
             _selector.close();
         } catch (IOException e) {
-            logger.warn("io error",e);
+            logger.warn("io error", e);
+        }
+    }
+
+    protected void read(SelectionKey key, boolean isEncrypted) {
+        SocketChannel socketChannel = (SocketChannel) key.channel();
+        PipeWorker pipe = _pipes.get(socketChannel);
+        if (pipe == null) {
+            // should not happen
+            cleanUp(socketChannel);
+            return;
+        }
+        _readBuffer.clear();
+        int readCount;
+        try {
+            readCount = socketChannel.read(_readBuffer);
+        } catch (IOException e) {
+            cleanUp(socketChannel);
+            return;
+        }
+        if (readCount == -1) {
+            cleanUp(socketChannel);
+            return;
+        }
+        pipe.processData(_readBuffer.array(), readCount, isEncrypted);
+    }
+
+
+    private void write(SelectionKey key) throws IOException {
+        SocketChannel socketChannel = (SocketChannel) key.channel();
+        List<ByteBuffer> queue = _pendingData.get(socketChannel);
+        if (queue != null) {
+            // may be synchronized (queue)
+            // write data to socket
+            while (!queue.isEmpty()) {
+                ByteBuffer buf = queue.get(0);
+                socketChannel.write(buf);
+                if (buf.remaining() > 0) {
+                    break;
+                }
+                queue.remove(0);
+            }
+            if (queue.isEmpty()) {
+                key.interestOps(SelectionKey.OP_READ);
+            }
+        } else {
+            logger.warn("Socket::write queue = null: {}", socketChannel);
         }
     }
 }
