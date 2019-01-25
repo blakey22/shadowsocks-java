@@ -48,7 +48,7 @@ import java.nio.file.Paths;
  */
 public class JsonConfig extends Config {
 
-    public static final String CONF_FILE = "config.json";
+    private static final String CONF_FILE = "config.json";
     private Logger logger = LoggerFactory.getLogger(getClass());
 
     public void loadFromJson() {
@@ -56,7 +56,7 @@ public class JsonConfig extends Config {
         try {
             loadFromJson(new String(Files.readAllBytes(path)));
         } catch (IOException e) {
-            e.printStackTrace();
+            logger.info("load json config file error", e);
         }
     }
 
@@ -72,6 +72,13 @@ public class JsonConfig extends Config {
                     setLogLevel(json.getString("logLevel")).
                     setProxyType(json.getString("proxyType"));
         }
+    }
+
+    @Override
+    public Config setLogLevel(String logLevel) {
+        super.setLogLevel(logLevel);
+        Log.init(logLevel);
+        return this;
     }
 
     public boolean saveToJson() {
