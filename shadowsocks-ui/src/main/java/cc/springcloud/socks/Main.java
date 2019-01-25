@@ -6,14 +6,17 @@ import cc.springcloud.socks.network.NioLocalServer;
 import cc.springcloud.socks.network.proxy.IProxy;
 import cc.springcloud.socks.network.proxy.ProxyFactory;
 import cc.springcloud.socks.ss.CryptFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.logging.Logger;
+
 
 public class Main {
-    private static Logger logger = Logger.getLogger(Main.class.getName());
+    private static Logger logger = LoggerFactory.getLogger(Main.class);
 
     public static void main(String[] args) {
         if (args.length != 0) {
@@ -42,7 +45,7 @@ public class Main {
             t.start();
             t.join();
         } catch (Exception e) {
-            logger.warning("Unable to start server: " + e.toString());
+            logger.warn("Unable to start server: {}" , e);
         }
     }
 

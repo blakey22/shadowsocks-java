@@ -22,12 +22,14 @@ import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
 import javafx.scene.layout.Pane;
 import javafx.stage.Stage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.security.InvalidAlgorithmParameterException;
 import java.util.Locale;
 import java.util.ResourceBundle;
-import java.util.logging.Logger;
+
 
 
 public class MainLayoutController {
@@ -36,13 +38,13 @@ public class MainLayoutController {
     @FXML
     private TextField txtServerPort;
     @FXML
-    private ComboBox cboCipher;
+    private ComboBox<String> cboCipher;
     @FXML
     private TextField txtPassword;
     @FXML
     private TextField txtLocalPort;
     @FXML
-    private ComboBox cboProxyType;
+    private ComboBox<IProxy.TYPE> cboProxyType;
     @FXML
     private Button btnStart;
     @FXML
@@ -52,7 +54,7 @@ public class MainLayoutController {
     @FXML
     private Button btnClose;
 
-    private Logger logger = Logger.getLogger(MainLayoutController.class.getName());
+    private Logger logger = LoggerFactory.getLogger(getClass());
     private MainGui gui;
     private IServer server;
     private Stage logStage;
@@ -78,7 +80,7 @@ public class MainLayoutController {
         txtLocalPort.setText(String.valueOf(jsonConfig.getLocalPort()));
         txtPassword.setText(jsonConfig.getPassword());
         cboCipher.setValue(jsonConfig.getMethod());
-        cboProxyType.setValue(jsonConfig.getProxyType());
+        cboProxyType.setValue(IProxy.TYPE.valueOf(jsonConfig.getProxyType()));
 
         // prepare log window
         Stage stage = new Stage();
@@ -96,7 +98,7 @@ public class MainLayoutController {
             controller.setStage(stage);
             logStage = stage;
         } catch (IOException e) {
-            logger.warning("Unable to load ICON: " + e.toString());
+            logger.warn("Unable to load ICON: {}",e);
         }
 
         btnStop.setDisable(true);
@@ -117,13 +119,13 @@ public class MainLayoutController {
             }
             int port = Integer.parseInt(txtServerPort.getText());
 
-            String method = (String) cboCipher.getValue();
+            String method = cboCipher.getValue();
             if (txtPassword.getText().length() == 0) {
                 showAlert(Constant.PROG_NAME, "Please specified password", Alert.AlertType.ERROR);
                 break;
             }
             String password = txtPassword.getText();
-            IProxy.TYPE type = IProxy.TYPE.valueOf(cboProxyType.getValue().toString().toUpperCase());
+            IProxy.TYPE type = cboProxyType.getValue();
             if (!txtLocalPort.getText().matches("[0-9]+")) {
                 showAlert(Constant.PROG_NAME, "Invalid Port", Alert.AlertType.ERROR);
                 break;
@@ -156,7 +158,7 @@ public class MainLayoutController {
             gui.setTooltip(message);
             gui.showNotification(message);
         } catch (IOException | InvalidAlgorithmParameterException e) {
-            logger.warning("Unable to start server: " + e.toString());
+            logger.warn("Unable to start server: {}",e);
         }
         btnStop.setDisable(false);
         btnStart.setDisable(true);

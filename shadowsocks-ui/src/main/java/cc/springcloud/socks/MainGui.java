@@ -9,6 +9,8 @@ import javafx.scene.Scene;
 import javafx.scene.image.Image;
 import javafx.scene.layout.Pane;
 import javafx.stage.Stage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
@@ -17,11 +19,11 @@ import java.awt.event.ActionListener;
 import java.io.IOException;
 import java.util.Locale;
 import java.util.ResourceBundle;
-import java.util.logging.Logger;
+
 
 public class MainGui extends Application {
 
-    private static Logger logger = Logger.getLogger(MainGui.class.getName());
+    private Logger logger = LoggerFactory.getLogger(getClass());
     private Stage primaryStage;
     private Scene rootScene;
     private MainLayoutController controller;
@@ -64,7 +66,7 @@ public class MainGui extends Application {
 
         // make sure system tray is supported
         if (!java.awt.SystemTray.isSupported()) {
-            logger.warning("No system tray support!");
+            logger.warn("No system tray support!");
         }
 
         final java.awt.SystemTray tray = java.awt.SystemTray.getSystemTray();
