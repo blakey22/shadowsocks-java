@@ -111,10 +111,6 @@ public class Socks5Proxy implements IProxy {
 
     @Override
     public boolean isMine(byte[] data) {
-        if (data[0] == 0x5) {
-            return true;
-        }
-
-        return false;
+        return data[0] == 0x5;
     }
 }

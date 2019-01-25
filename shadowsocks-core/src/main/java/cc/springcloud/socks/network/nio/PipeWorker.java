@@ -156,6 +156,7 @@ public class PipeWorker implements Runnable {
                     logger.info("Connected to: {}", Util.getRequestedHostInfo(sendData.get(0)));
                     //logger.info("Test: " + Util.bytesToString(temp, 0, temp.length));
                 } else {
+                    assert sendData != null;
                     sendData.clear();
                     sendData.add(event.data);
                 }

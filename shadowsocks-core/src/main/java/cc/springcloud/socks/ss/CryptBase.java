@@ -53,8 +53,11 @@ import java.util.concurrent.locks.ReentrantLock;
 public abstract class CryptBase implements ICrypt {
 
     protected abstract StreamBlockCipher getCipher(boolean isEncrypted) throws InvalidAlgorithmParameterException;
+
     protected abstract SecretKey getKey();
+
     protected abstract void _encrypt(byte[] data, ByteArrayOutputStream stream);
+
     protected abstract void _decrypt(byte[] data, ByteArrayOutputStream stream);
 
     protected final SecretKey _key;
@@ -65,52 +68,47 @@ public abstract class CryptBase implements ICrypt {
 
     protected boolean _encryptIVSet;
     protected boolean _decryptIVSet;
-    protected byte[] _encryptIV;
-    protected byte[] _decryptIV;
+    protected final byte[] _encryptIV;
+    protected final byte[] _decryptIV;
     protected final Lock encLock = new ReentrantLock();
     protected final Lock decLock = new ReentrantLock();
     protected StreamBlockCipher encCipher;
     protected StreamBlockCipher decCipher;
     private Logger logger = LoggerFactory.getLogger(getClass());
 
-    public CryptBase(String name,String password){
+    public CryptBase(String name, String password) {
         _name = name.toLowerCase();
         _ivLength = getIVLength();
         _keyLength = getKeyLength();
         _ssKey = new ShadowSocksKey(password, _keyLength);
         _key = getKey();
+        _encryptIV = new byte[_ivLength];
+        _decryptIV = new byte[_ivLength];
     }
 
-    protected void setIV(byte[] iv, boolean isEncrypt)
-    {
+
+    protected void setIV(byte[] iv, boolean isEncrypt) {
         if (_ivLength == 0) {
             return;
         }
+        if (isEncrypt) {
+            encCipher = initCipher(iv, _encryptIV, true);
+        } else {
+            decCipher = initCipher(iv, _decryptIV, false);
+        }
+    }
 
-        if (isEncrypt)
-        {
-            _encryptIV = new byte[_ivLength];
-            System.arraycopy(iv, 0, _encryptIV, 0, _ivLength);
-            try {
-                encCipher = getCipher(isEncrypt);
-                ParametersWithIV parameterIV = new ParametersWithIV(new KeyParameter(_key.getEncoded()), _encryptIV);
-                encCipher.init(isEncrypt, parameterIV);
-            } catch (InvalidAlgorithmParameterException e) {
-                logger.info(e.toString());
-            }
+    private StreamBlockCipher initCipher(byte[] iv, byte[] _encryptIV, boolean isEncrypt) {
+        System.arraycopy(iv, 0, _encryptIV, 0, _ivLength);
+        StreamBlockCipher cipher = null;
+        try {
+            cipher = getCipher(isEncrypt);
+            ParametersWithIV parameterIV = new ParametersWithIV(new KeyParameter(_key.getEncoded()), _encryptIV);
+            cipher.init(isEncrypt, parameterIV);
+        } catch (InvalidAlgorithmParameterException e) {
+            logger.info(e.toString());
         }
-        else
-        {
-            _decryptIV = new byte[_ivLength];
-            System.arraycopy(iv, 0, _decryptIV, 0, _ivLength);
-            try {
-                decCipher = getCipher(isEncrypt);
-                ParametersWithIV parameterIV = new ParametersWithIV(new KeyParameter(_key.getEncoded()), _decryptIV);
-                decCipher.init(isEncrypt, parameterIV);
-            } catch (InvalidAlgorithmParameterException e) {
-                logger.info(e.toString());
-            }
-        }
+        return cipher;
     }
 
     @Override
@@ -126,9 +124,7 @@ public abstract class CryptBase implements ICrypt {
                 } catch (IOException e) {
                     logger.info(e.toString());
                 }
-
             }
-
             _encrypt(data, stream);
         }
     }
@@ -154,7 +150,6 @@ public abstract class CryptBase implements ICrypt {
             } else {
                 temp = data;
             }
-
             _decrypt(temp, stream);
         }
     }

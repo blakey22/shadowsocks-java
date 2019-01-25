@@ -66,16 +66,14 @@ public class CamelliaCrypt extends CryptBase {
 
     @Override
     public int getKeyLength() {
-        if(_name.equals(CIPHER_CAMELLIA_128_CFB)) {
-            return 16;
+        switch (_name) {
+            case CIPHER_CAMELLIA_128_CFB:
+                return 16;
+            case CIPHER_CAMELLIA_192_CFB:
+                return 24;
+            case CIPHER_CAMELLIA_256_CFB:
+                return 32;
         }
-        else if (_name.equals(CIPHER_CAMELLIA_192_CFB)) {
-            return 24;
-        }
-        else if (_name.equals(CIPHER_CAMELLIA_256_CFB)) {
-            return 32;
-        }
-
         return 0;
     }
 
@@ -84,17 +82,18 @@ public class CamelliaCrypt extends CryptBase {
         CamelliaEngine engine = new CamelliaEngine();
         StreamBlockCipher cipher;
 
-        if (_name.equals(CIPHER_CAMELLIA_128_CFB)) {
-            cipher = new CFBBlockCipher(engine, getIVLength() * 8);
-        }
-        else if (_name.equals(CIPHER_CAMELLIA_192_CFB)) {
-            cipher = new CFBBlockCipher(engine, getIVLength() * 8);
-        }
-        else if (_name.equals(CIPHER_CAMELLIA_256_CFB)) {
-            cipher = new CFBBlockCipher(engine, getIVLength() * 8);
-        }
-        else {
-            throw new InvalidAlgorithmParameterException(_name);
+        switch (_name) {
+            case CIPHER_CAMELLIA_128_CFB:
+                cipher = new CFBBlockCipher(engine, getIVLength() * 8);
+                break;
+            case CIPHER_CAMELLIA_192_CFB:
+                cipher = new CFBBlockCipher(engine, getIVLength() * 8);
+                break;
+            case CIPHER_CAMELLIA_256_CFB:
+                cipher = new CFBBlockCipher(engine, getIVLength() * 8);
+                break;
+            default:
+                throw new InvalidAlgorithmParameterException(_name);
         }
 
         return cipher;
@@ -123,7 +122,6 @@ public class CamelliaCrypt extends CryptBase {
     protected void _decrypt(byte[] data, ByteArrayOutputStream stream) {
         int noBytesProcessed;
         byte[] buffer = new byte[data.length];
-
         noBytesProcessed = decCipher.processBytes(data, 0, data.length, buffer, 0);
         stream.write(buffer, 0, noBytesProcessed);
     }

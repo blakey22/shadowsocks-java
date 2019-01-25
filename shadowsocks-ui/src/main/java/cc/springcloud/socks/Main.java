@@ -75,32 +75,34 @@ public class Main {
         // parse arguments
         for (int i = 0; i < args.length; i+=2) {
             String[] tempArgs;
-            if (args[i].equals("--local")) {
-                tempArgs = args[i+1].split(":");
-                if (tempArgs.length < 2) {
-                    System.out.println("Invalid argument: " + args[i]);
-                    return null;
-                }
-                jsonConfig.setLocalIpAddress(tempArgs[0]);
-                jsonConfig.setLocalPort(Integer.parseInt(tempArgs[1]));
-            }
-            else if (args[i].equals("--remote")) {
-                tempArgs = args[i+1].split(":");
-                if (tempArgs.length < 2) {
-                    System.out.println("Invalid argument: " + args[i]);
-                    return null;
-                }
-                jsonConfig.setRemoteIpAddress(tempArgs[0]);
-                jsonConfig.setRemotePort(Integer.parseInt(tempArgs[1]));
-            }
-            else if (args[i].equals("--cipher")) {
-                jsonConfig.setMethod(args[i+1]);
-            }
-            else if (args[i].equals("--password")) {
-                jsonConfig.setPassword(args[i + 1]);
-            }
-            else if (args[i].equals("--proxy")) {
-                jsonConfig.setProxyType(args[i + 1]);
+            switch (args[i]) {
+                case "--local":
+                    tempArgs = args[i + 1].split(":");
+                    if (tempArgs.length < 2) {
+                        System.out.println("Invalid argument: " + args[i]);
+                        return null;
+                    }
+                    jsonConfig.setLocalIpAddress(tempArgs[0]);
+                    jsonConfig.setLocalPort(Integer.parseInt(tempArgs[1]));
+                    break;
+                case "--remote":
+                    tempArgs = args[i + 1].split(":");
+                    if (tempArgs.length < 2) {
+                        System.out.println("Invalid argument: " + args[i]);
+                        return null;
+                    }
+                    jsonConfig.setRemoteIpAddress(tempArgs[0]);
+                    jsonConfig.setRemotePort(Integer.parseInt(tempArgs[1]));
+                    break;
+                case "--cipher":
+                    jsonConfig.setMethod(args[i + 1]);
+                    break;
+                case "--password":
+                    jsonConfig.setPassword(args[i + 1]);
+                    break;
+                case "--proxy":
+                    jsonConfig.setProxyType(args[i + 1]);
+                    break;
             }
         }
 

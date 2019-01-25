@@ -14,8 +14,6 @@ import org.slf4j.LoggerFactory;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.io.IOException;
 import java.util.Locale;
 import java.util.ResourceBundle;
@@ -30,7 +28,7 @@ public class MainGui extends Application {
     private TrayIcon trayIcon;
 
     @Override
-    public void start(Stage primaryStage) throws Exception {
+    public void start(Stage primaryStage) {
 
         Platform.setImplicitExit(false);
         this.primaryStage = primaryStage;
@@ -55,7 +53,7 @@ public class MainGui extends Application {
             primaryStage.show();
         } catch (IOException e) {
             // Exception gets thrown if the fxml file could not be loaded
-            e.printStackTrace();
+            logger.info("start error",e);
         }
     }
 
@@ -74,39 +72,16 @@ public class MainGui extends Application {
 
             java.awt.Image image = ImageIO.read(MainGui.class.getResource("/resources/image/icon.png"));
             trayIcon = new TrayIcon(image);
-            trayIcon.addActionListener(new ActionListener() {
-                @Override
-                public void actionPerformed(ActionEvent e) {
-                    Platform.runLater(new Runnable() {
-                        @Override
-                        public void run() {
-                            primaryStage.show();
-                        }
-                    });
-                }
-            });
+            trayIcon.addActionListener(e -> Platform.runLater(() -> primaryStage.show()));
 
             java.awt.MenuItem openItem = new java.awt.MenuItem("Configuration");
-            openItem.addActionListener(new ActionListener() {
-                @Override
-                public void actionPerformed(ActionEvent e) {
-                    Platform.runLater(new Runnable() {
-                        @Override
-                        public void run() {
-                            show();
-                        }
-                    });
-                }
-            });
+            openItem.addActionListener(e -> Platform.runLater(() -> show()));
 
             java.awt.MenuItem exitItem = new java.awt.MenuItem("Exit");
-            exitItem.addActionListener(new ActionListener() {
-                @Override
-                public void actionPerformed(ActionEvent e) {
-                    controller.closeServer();
-                    Platform.exit();
-                    tray.remove(trayIcon);
-                }
+            exitItem.addActionListener(e -> {
+                controller.closeServer();
+                Platform.exit();
+                tray.remove(trayIcon);
             });
 
             PopupMenu popup = new PopupMenu();
@@ -116,10 +91,8 @@ public class MainGui extends Application {
             trayIcon.setPopupMenu(popup);
             trayIcon.setToolTip("Not Connected");
             tray.add(trayIcon);
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (AWTException e) {
-            e.printStackTrace();
+        } catch (IOException | AWTException e) {
+            logger.info("addToTray error",e);
         }
     }
 

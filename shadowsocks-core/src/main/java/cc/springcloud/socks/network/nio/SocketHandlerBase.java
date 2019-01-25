@@ -44,10 +44,7 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 import java.security.InvalidAlgorithmParameterException;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -58,8 +55,8 @@ public abstract class SocketHandlerBase implements IServer, ISocketHandler {
     private Logger logger = LoggerFactory.getLogger(getClass());
     protected Selector _selector;
     protected Config _config;
-    protected final List _pendingRequest = new LinkedList();
-    protected final ConcurrentHashMap _pendingData = new ConcurrentHashMap();
+    protected final List<ChangeRequest> _pendingRequest = new LinkedList<>();
+    protected final ConcurrentHashMap<SocketChannel,List<ByteBuffer>> _pendingData = new ConcurrentHashMap<>();
     protected ConcurrentMap<SocketChannel, PipeWorker> _pipes = new ConcurrentHashMap<>();
     protected ByteBuffer _readBuffer = ByteBuffer.allocate(Constant.BUFFER_SIZE);
 
@@ -69,7 +66,7 @@ public abstract class SocketHandlerBase implements IServer, ISocketHandler {
 
 
     public SocketHandlerBase(Config config) throws IOException, InvalidAlgorithmParameterException {
-        if (!CryptBuilder.isCipherExisted(config.getMethod())) {
+        if (CryptBuilder.isCipherNotExisted(config.getMethod())) {
             throw new InvalidAlgorithmParameterException(config.getMethod());
         }
         _config = config;
@@ -116,7 +113,7 @@ public abstract class SocketHandlerBase implements IServer, ISocketHandler {
     }
 
     protected void createWriteBuffer(SocketChannel socketChannel) {
-        List queue = new ArrayList();
+        List<ByteBuffer> queue = new ArrayList<>();
         Object put;
         put = _pendingData.putIfAbsent(socketChannel, queue);
         if (put != null) {
@@ -135,18 +132,16 @@ public abstract class SocketHandlerBase implements IServer, ISocketHandler {
             key.cancel();
         }
 
-        if (_pendingData.containsKey(socketChannel)) {
-            _pendingData.remove(socketChannel);
-        }
+        _pendingData.remove(socketChannel);
     }
 
     @Override
     public void send(ChangeRequest request, byte[] data) {
         switch (request.type) {
             case ChangeRequest.CHANGE_SOCKET_OP:
-                List queue = (List) _pendingData.get(request.socket);
+                List<ByteBuffer> queue = _pendingData.get(request.socket);
                 if (queue != null) {
-                    synchronized (queue) {
+                    synchronized (_pendingData) {
                         // in general case, the write queue is always existed, unless, the socket has been shutdown
                         queue.add(ByteBuffer.wrap(data));
                     }

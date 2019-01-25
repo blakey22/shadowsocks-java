@@ -105,7 +105,7 @@ public class ShadowSocksKey implements SecretKey {
 
     @Override
     public String getAlgorithm() {
-        return "shadowsocks";
+        return "shadowSocks";
     }
 
     @Override

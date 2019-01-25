@@ -77,7 +77,7 @@ public class HttpProxy implements IProxy {
 
         if (_isHttpConnect)
             return String.format("HTTP/1.0 200\r\nProxy-agent: %s/%s\r\n\r\n",
-                    Constant.PROG_NAME, Constant.VERSION).getBytes();
+                    Constant.PROGRAM_NAME, Constant.VERSION).getBytes();
         return null;
     }
 
@@ -209,13 +209,8 @@ public class HttpProxy implements IProxy {
 
     private void setHttpMethod(Map<String, String> header) {
         String method = header.get("method");
-
         if (method != null) {
-            if (method.toUpperCase().equals("CONNECT")) {
-                _isHttpConnect = true;
-            } else {
-                _isHttpConnect = false;
-            }
+            _isHttpConnect = method.toUpperCase().equals("CONNECT");
         }
     }
 

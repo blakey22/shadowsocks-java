@@ -46,8 +46,8 @@ public class CryptBuilder {
         // TODO: other crypts
     }};
 
-    public static boolean isCipherExisted(String name) {
-        return crypts.get(name) != null;
+    public static boolean isCipherNotExisted(String name) {
+        return crypts.get(name) == null;
     }
 
     public static ICrypt build(String name, String password) {

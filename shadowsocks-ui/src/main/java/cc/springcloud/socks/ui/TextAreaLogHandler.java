@@ -7,7 +7,7 @@ import java.util.logging.LogRecord;
 import java.util.logging.StreamHandler;
 
 public class TextAreaLogHandler extends StreamHandler {
-    TextArea textArea = null;
+    private TextArea textArea;
 
     public void setTextArea(TextArea textArea) {
         this.textArea = textArea;
@@ -20,15 +20,12 @@ public class TextAreaLogHandler extends StreamHandler {
         flush();
 
         if (textArea != null) {
-            Platform.runLater(new Runnable() {
-                @Override
-                public void run() {
-                    // limited log size to 64k
-                    if (textArea.getText().length() > 65535) {
-                        textArea.clear();
-                    }
-                    textArea.appendText(getFormatter().format(lg));
+            Platform.runLater(() -> {
+                // limited log size to 64k
+                if (textArea.getText().length() > 65535) {
+                    textArea.clear();
                 }
+                textArea.appendText(getFormatter().format(lg));
             });
         }
     }

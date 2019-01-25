@@ -100,115 +100,108 @@ public class PipeSocket implements Runnable {
     }
 
     private Runnable getLocalWorker() {
-        return new Runnable() {
-            @Override
-            public void run() {
-                BufferedInputStream stream;
-                byte[] dataBuffer = new byte[Constant.BUFFER_SIZE];
-                byte[] buffer;
-                int readCount;
-                List<byte[]> sendData = null;
+        return () -> {
+            BufferedInputStream stream;
+            byte[] dataBuffer = new byte[Constant.BUFFER_SIZE];
+            byte[] buffer;
+            int readCount;
+            List<byte[]> sendData = null;
 
-                // prepare local stream
-                try {
-                    stream = new BufferedInputStream(_local.getInputStream());
-                } catch (IOException e) {
-                    logger.info(e.toString());
-                    return;
-                }
-
-                // start to process data from local socket
-                while (true) {
-                    try {
-                         // read data
-                        readCount = stream.read(dataBuffer);
-                        if (readCount == -1) {
-                            throw new IOException("Local socket closed (Read)!");
-                        }
-
-                        // initialize proxy
-                        if (!_proxy.isReady()) {
-                            byte[] temp;
-                            buffer = new byte[readCount];
-
-                            // dup dataBuffer to use in later
-                            System.arraycopy(dataBuffer, 0, buffer, 0, readCount);
-
-                            temp = _proxy.getResponse(buffer);
-                            if ((temp != null) && (!_sendLocal(temp, temp.length))) {
-                                throw new IOException("Local socket closed (proxy-Write)!");
-                            }
-                            // packet for remote socket
-                            sendData = _proxy.getRemoteResponse(buffer);
-                            if (sendData == null) {
-                                continue;
-                            }
-                            logger.info("Connected to: {}",Util.getRequestedHostInfo(sendData.get(0)));
-                        }
-                        else {
-                            sendData.clear();
-                            sendData.add(dataBuffer);
-                        }
-
-                        for (byte[] bytes : sendData) {
-                            // send data to remote socket
-                            if (!sendRemote(bytes, bytes.length)) {
-                                throw new IOException("Remote socket closed (Write)!");
-                            }
-                        }
-                    } catch (SocketTimeoutException e) {
-                        continue;
-                    } catch (IOException e) {
-                        logger.info("io error",e);
-                        break;
-                    }
-                }
-                close();
-                logger.info(String.format("localWorker exit, Local=%s, Remote=%s", _local, _remote));
+            // prepare local stream
+            try {
+                stream = new BufferedInputStream(_local.getInputStream());
+            } catch (IOException e) {
+                logger.info(e.toString());
+                return;
             }
+
+            // start to process data from local socket
+            while (true) {
+                try {
+                     // read data
+                    readCount = stream.read(dataBuffer);
+                    if (readCount == -1) {
+                        throw new IOException("Local socket closed (Read)!");
+                    }
+
+                    // initialize proxy
+                    if (!_proxy.isReady()) {
+                        byte[] temp;
+                        buffer = new byte[readCount];
+
+                        // dup dataBuffer to use in later
+                        System.arraycopy(dataBuffer, 0, buffer, 0, readCount);
+
+                        temp = _proxy.getResponse(buffer);
+                        if ((temp != null) && (!_sendLocal(temp, temp.length))) {
+                            throw new IOException("Local socket closed (proxy-Write)!");
+                        }
+                        // packet for remote socket
+                        sendData = _proxy.getRemoteResponse(buffer);
+                        if (sendData == null) {
+                            continue;
+                        }
+                        logger.info("Connected to: {}",Util.getRequestedHostInfo(sendData.get(0)));
+                    }
+                    else {
+                        assert sendData != null;
+                        sendData.clear();
+                        sendData.add(dataBuffer);
+                    }
+
+                    for (byte[] bytes : sendData) {
+                        // send data to remote socket
+                        if (!sendRemote(bytes, bytes.length)) {
+                            throw new IOException("Remote socket closed (Write)!");
+                        }
+                    }
+                } catch (SocketTimeoutException ignored) {
+                } catch (IOException e) {
+                    logger.info("io error",e);
+                    break;
+                }
+            }
+            close();
+            logger.info(String.format("localWorker exit, Local=%s, Remote=%s", _local, _remote));
         };
     }
 
     private Runnable getRemoteWorker() {
-        return new Runnable() {
-            @Override
-            public void run() {
-                BufferedInputStream stream;
-                int readCount;
-                byte[] dataBuffer = new byte[4096];
+        return () -> {
+            BufferedInputStream stream;
+            int readCount;
+            byte[] dataBuffer = new byte[4096];
 
-                // prepare remote stream
+            // prepare remote stream
+            try {
+                //stream = _remote.getInputStream();
+                stream = new BufferedInputStream (_remote.getInputStream());
+            } catch (IOException e) {
+                logger.info(e.toString());
+                return;
+            }
+
+            // start to process data from remote socket
+            while (true) {
                 try {
-                    //stream = _remote.getInputStream();
-                    stream = new BufferedInputStream (_remote.getInputStream());
-                } catch (IOException e) {
-                    logger.info(e.toString());
-                    return;
-                }
-
-                // start to process data from remote socket
-                while (true) {
-                    try {
-                        readCount = stream.read(dataBuffer);
-                        if (readCount == -1) {
-                            throw new IOException("Remote socket closed (Read)!");
-                        }
-
-                        // send data to local socket
-                        if (!sendLocal(dataBuffer, readCount)) {
-                            throw new IOException("Local socket closed (Write)!");
-                        }
-                    } catch (SocketTimeoutException e) {
-                        continue;
-                    } catch (IOException e) {
-                        logger.info("io error",e);
-                        break;
+                    readCount = stream.read(dataBuffer);
+                    if (readCount == -1) {
+                        throw new IOException("Remote socket closed (Read)!");
                     }
 
+                    // send data to local socket
+                    if (!sendLocal(dataBuffer, readCount)) {
+                        throw new IOException("Local socket closed (Write)!");
+                    }
+                } catch (SocketTimeoutException ignored) {
+                } catch (IOException e) {
+                    logger.info("io error",e);
+                    break;
                 }
-                close();
-                logger.info("remoteWorker exit, Local={}, Remote={}", _local, _remote);
+
             }
+            close();
+            logger.info("remoteWorker exit, Local={}, Remote={}", _local, _remote);
         };
     }
 

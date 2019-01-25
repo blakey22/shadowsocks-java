@@ -73,16 +73,17 @@ public class AesCrypt extends CryptBase {
 
     @Override
     public int getKeyLength() {
-        if(_name.equals(CIPHER_AES_128_CFB) || _name.equals(CIPHER_AES_128_OFB)) {
-            return 16;
+        switch (_name) {
+            case CIPHER_AES_128_CFB:
+            case CIPHER_AES_128_OFB:
+                return 16;
+            case CIPHER_AES_192_CFB:
+            case CIPHER_AES_192_OFB:
+                return 24;
+            case CIPHER_AES_256_CFB:
+            case CIPHER_AES_256_OFB:
+                return 32;
         }
-        else if (_name.equals(CIPHER_AES_192_CFB) || _name.equals(CIPHER_AES_192_OFB)) {
-            return 24;
-        }
-        else if (_name.equals(CIPHER_AES_256_CFB) || _name.equals(CIPHER_AES_256_OFB)) {
-            return 32;
-        }
-
         return 0;
     }
 
@@ -91,28 +92,28 @@ public class AesCrypt extends CryptBase {
         AESFastEngine engine = new AESFastEngine();
         StreamBlockCipher cipher;
 
-        if (_name.equals(CIPHER_AES_128_CFB)) {
-            cipher = new CFBBlockCipher(engine, getIVLength() * 8);
+        switch (_name) {
+            case CIPHER_AES_128_CFB:
+                cipher = new CFBBlockCipher(engine, getIVLength() * 8);
+                break;
+            case CIPHER_AES_192_CFB:
+                cipher = new CFBBlockCipher(engine, getIVLength() * 8);
+                break;
+            case CIPHER_AES_256_CFB:
+                cipher = new CFBBlockCipher(engine, getIVLength() * 8);
+                break;
+            case CIPHER_AES_128_OFB:
+                cipher = new OFBBlockCipher(engine, getIVLength() * 8);
+                break;
+            case CIPHER_AES_192_OFB:
+                cipher = new OFBBlockCipher(engine, getIVLength() * 8);
+                break;
+            case CIPHER_AES_256_OFB:
+                cipher = new OFBBlockCipher(engine, getIVLength() * 8);
+                break;
+            default:
+                throw new InvalidAlgorithmParameterException(_name);
         }
-        else if (_name.equals(CIPHER_AES_192_CFB)) {
-            cipher = new CFBBlockCipher(engine, getIVLength() * 8);
-        }
-        else if (_name.equals(CIPHER_AES_256_CFB)) {
-            cipher = new CFBBlockCipher(engine, getIVLength() * 8);
-        }
-        else if (_name.equals(CIPHER_AES_128_OFB)) {
-            cipher = new OFBBlockCipher(engine, getIVLength() * 8);
-        }
-        else if (_name.equals(CIPHER_AES_192_OFB)) {
-            cipher = new OFBBlockCipher(engine, getIVLength() * 8);
-        }
-        else if (_name.equals(CIPHER_AES_256_OFB)) {
-            cipher = new OFBBlockCipher(engine, getIVLength() * 8);
-        }
-        else {
-            throw new InvalidAlgorithmParameterException(_name);
-        }
-
         return cipher;
     }
 

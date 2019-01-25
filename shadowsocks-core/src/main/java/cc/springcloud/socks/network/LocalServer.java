@@ -57,7 +57,7 @@ public class LocalServer implements IServer {
     private List<PipeSocket> _pipes;
 
     public LocalServer(Config config) throws IOException, InvalidAlgorithmParameterException {
-        if (!CryptBuilder.isCipherExisted(config.getMethod())) {
+        if (CryptBuilder.isCipherNotExisted(config.getMethod())) {
             throw new InvalidAlgorithmParameterException(config.getMethod());
         }
         _config = config;

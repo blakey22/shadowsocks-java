@@ -30,7 +30,6 @@ import java.util.Locale;
 import java.util.ResourceBundle;
 
 
-
 public class MainLayoutController {
     @FXML
     private TextField txtServerIP;
@@ -97,7 +96,7 @@ public class MainLayoutController {
             controller.setStage(stage);
             logStage = stage;
         } catch (IOException e) {
-            logger.warn("Unable to load ICON: {}",e);
+            logger.warn("Unable to load ICON: {}", e);
         }
 
         btnStop.setDisable(true);
@@ -105,47 +104,37 @@ public class MainLayoutController {
 
     @FXML
     private void handleStart() {
-        boolean isValidated = false;
-        do {
-            if (!txtServerIP.getText().matches("[0-9]{1,4}.[0-9]{1,4}.[0-9]{1,4}.[0-9]{1,4}")) {
-                showAlert(Constant.PROG_NAME, "Invalid IP address", Alert.AlertType.ERROR);
-                break;
-            }
-            String ip = txtServerIP.getText();
-            if (!txtServerPort.getText().matches("[0-9]+")) {
-                showAlert(Constant.PROG_NAME, "Invalid Port", Alert.AlertType.ERROR);
-                break;
-            }
-            int port = Integer.parseInt(txtServerPort.getText());
-
-            String method = cboCipher.getValue();
-            if (txtPassword.getText().length() == 0) {
-                showAlert(Constant.PROG_NAME, "Please specified password", Alert.AlertType.ERROR);
-                break;
-            }
-            String password = txtPassword.getText();
-            IProxy.TYPE type = cboProxyType.getValue();
-            if (!txtLocalPort.getText().matches("[0-9]+")) {
-                showAlert(Constant.PROG_NAME, "Invalid Port", Alert.AlertType.ERROR);
-                break;
-            }
-            int localPort = Integer.parseInt(txtLocalPort.getText());
-
-            // create jsonConfig
-            jsonConfig.setRemoteIpAddress(ip);
-            jsonConfig.setRemotePort(port);
-            jsonConfig.setLocalIpAddress("127.0.0.1");
-            jsonConfig.setLocalPort(localPort);
-            jsonConfig.setMethod(method);
-            jsonConfig.setPassword(password);
-            jsonConfig.setProxyType(type.name());
-            jsonConfig.saveToJson();
-            isValidated = true;
-        } while (false);
-
-        if (!isValidated)
+        if (!txtServerIP.getText().matches("[0-9]{1,4}.[0-9]{1,4}.[0-9]{1,4}.[0-9]{1,4}")) {
+            showAlert(Constant.PROGRAM_NAME, "Invalid IP address", Alert.AlertType.ERROR);
             return;
-
+        }
+        String ip = txtServerIP.getText();
+        if (!txtServerPort.getText().matches("[0-9]+")) {
+            showAlert(Constant.PROGRAM_NAME, "Invalid Port", Alert.AlertType.ERROR);
+            return;
+        }
+        int port = Integer.parseInt(txtServerPort.getText());
+        String method = cboCipher.getValue();
+        if (txtPassword.getText().length() == 0) {
+            showAlert(Constant.PROGRAM_NAME, "Please specified password", Alert.AlertType.ERROR);
+            return;
+        }
+        String password = txtPassword.getText();
+        IProxy.TYPE type = cboProxyType.getValue();
+        if (!txtLocalPort.getText().matches("[0-9]+")) {
+            showAlert(Constant.PROGRAM_NAME, "Invalid Port", Alert.AlertType.ERROR);
+            return;
+        }
+        int localPort = Integer.parseInt(txtLocalPort.getText());
+        // create jsonConfig
+        jsonConfig.setRemoteIpAddress(ip);
+        jsonConfig.setRemotePort(port);
+        jsonConfig.setLocalIpAddress("127.0.0.1");
+        jsonConfig.setLocalPort(localPort);
+        jsonConfig.setMethod(method);
+        jsonConfig.setPassword(password);
+        jsonConfig.setProxyType(type.name());
+        jsonConfig.saveToJson();
         // start start
         try {
             server = new NioLocalServer(jsonConfig);
@@ -156,7 +145,7 @@ public class MainLayoutController {
             gui.setTooltip(message);
             gui.showNotification(message);
         } catch (IOException | InvalidAlgorithmParameterException e) {
-            logger.warn("Unable to start server: {}",e);
+            logger.warn("Unable to start server: {}", e);
         }
         btnStop.setDisable(false);
         btnStart.setDisable(true);

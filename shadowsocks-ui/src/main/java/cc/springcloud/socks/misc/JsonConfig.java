@@ -81,7 +81,7 @@ public class JsonConfig extends Config {
         return this;
     }
 
-    public boolean saveToJson() {
+    public void saveToJson() {
         JSONObject json = new JSONObject();
         json.put("remoteIpAddress", getRemoteIpAddress());
         json.put("remotePort", getRemotePort());
@@ -132,9 +132,7 @@ public class JsonConfig extends Config {
             writer.close();
         } catch (FileNotFoundException e) {
             logger.info("save json config file error", e);
-            return false;
         }
-        return true;
     }
 
 }
