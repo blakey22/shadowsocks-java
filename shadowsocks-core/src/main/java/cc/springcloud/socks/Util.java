@@ -10,13 +10,6 @@ import java.security.SecureRandom;
  */
 public class Util {
 
-    public static String dumpBytes(byte[] a) {
-        StringBuilder sb = new StringBuilder(a.length * 2);
-        for(byte b: a)
-            sb.append(String.format("%x", b & 0xff));
-        return sb.toString();
-    }
-
     public static byte[] randomBytes(int size) {
         byte[] bytes = new byte[size];
         new SecureRandom().nextBytes(bytes);

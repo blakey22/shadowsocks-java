@@ -33,6 +33,15 @@ package cc.springcloud.socks.misc;
 
 import cc.springcloud.socks.network.Config;
 import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 /**
  * Data class for configuration to bring up server
@@ -40,22 +49,32 @@ import org.json.JSONObject;
 public class JsonConfig extends Config {
 
     public static final String CONF_FILE = "config.json";
+    private Logger logger = LoggerFactory.getLogger(getClass());
 
-    public void loadFromJson(String jsonStr) {
-        if (jsonStr!=null) {
-            JSONObject json = new JSONObject(jsonStr);
-            setRemoteIpAddress(json.getString("remoteIpAddress")).
-            setRemotePort(json.getInt("remotePort")).
-            setLocalIpAddress(json.getString("localIpAddress")).
-            setLocalPort(json.getInt("localPort")).
-            setMethod(json.getString("method")).
-            setPassword(json.getString("password")).
-            setLogLevel(json.getString("logLevel")).
-            setProxyType(json.getString("proxyType"));
+    public void loadFromJson() {
+        Path path = Paths.get(CONF_FILE);
+        try {
+            loadFromJson(new String(Files.readAllBytes(path)));
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 
-    public String saveToJson() {
+    public void loadFromJson(String jsonStr) {
+        if (jsonStr != null) {
+            JSONObject json = new JSONObject(jsonStr);
+            this.setRemoteIpAddress(json.getString("remoteIpAddress")).
+                    setRemotePort(json.getInt("remotePort")).
+                    setLocalIpAddress(json.getString("localIpAddress")).
+                    setLocalPort(json.getInt("localPort")).
+                    setMethod(json.getString("method")).
+                    setPassword(json.getString("password")).
+                    setLogLevel(json.getString("logLevel")).
+                    setProxyType(json.getString("proxyType"));
+        }
+    }
+
+    public boolean saveToJson() {
         JSONObject json = new JSONObject();
         json.put("remoteIpAddress", getRemoteIpAddress());
         json.put("remotePort", getRemotePort());
@@ -65,6 +84,50 @@ public class JsonConfig extends Config {
         json.put("password", getPassword());
         json.put("proxyType", getProxyType());
         json.put("logLevel", getLogLevel());
-        return Util.prettyPrintJson(json);
+        try {
+            PrintWriter writer = new PrintWriter(CONF_FILE) {
+                private final static String indent = "  ";
+                private final String LINE_SEP = System.getProperty("line.separator");
+                private int indentLevel = 0;
+
+                @Override
+                public void write(int c) {
+                    char ch = (char) c;
+                    if (ch == '[' || ch == '{') {
+                        super.write(c);
+                        super.write(LINE_SEP);
+                        indentLevel++;
+                        writeIndentation();
+                    } else if (ch == ']' || ch == '}') {
+                        super.write(LINE_SEP);
+                        indentLevel--;
+                        writeIndentation();
+                        super.write(c);
+                    } else if (ch == ':') {
+                        super.write(c);
+                        super.write(" ");
+                    } else if (ch == ',') {
+                        super.write(c);
+                        super.write(LINE_SEP);
+                        writeIndentation();
+                    } else {
+                        super.write(c);
+                    }
+                }
+
+                private void writeIndentation() {
+                    for (int i = 0; i < indentLevel; i++) {
+                        super.write(indent);
+                    }
+                }
+            };
+            json.write(writer);
+            writer.close();
+        } catch (FileNotFoundException e) {
+            logger.info("save json config file error", e);
+            return false;
+        }
+        return true;
     }
+
 }

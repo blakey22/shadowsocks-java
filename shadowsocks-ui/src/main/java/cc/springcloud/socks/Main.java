@@ -1,7 +1,6 @@
 package cc.springcloud.socks;
 
 import cc.springcloud.socks.misc.JsonConfig;
-import cc.springcloud.socks.misc.Util;
 import cc.springcloud.socks.network.NioLocalServer;
 import cc.springcloud.socks.network.proxy.IProxy;
 import cc.springcloud.socks.network.proxy.ProxyFactory;
@@ -36,7 +35,7 @@ public class Main {
             return;
         }
 
-        Util.saveFile(JsonConfig.CONF_FILE, jsonConfig.saveToJson());
+        jsonConfig.saveToJson();
 
         try {
             //LocalServer server = new LocalServer(jsonConfig);

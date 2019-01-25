@@ -4,7 +4,6 @@ import cc.springcloud.socks.Constant;
 import cc.springcloud.socks.MainGui;
 import cc.springcloud.socks.misc.JsonConfig;
 import cc.springcloud.socks.misc.UTF8Control;
-import cc.springcloud.socks.misc.Util;
 import cc.springcloud.socks.network.IServer;
 import cc.springcloud.socks.network.NioLocalServer;
 import cc.springcloud.socks.network.proxy.IProxy;
@@ -74,7 +73,7 @@ public class MainLayoutController {
 
         // prepare configuration
         jsonConfig = new JsonConfig();
-        jsonConfig.loadFromJson(Util.getFileContent(JsonConfig.CONF_FILE));
+        jsonConfig.loadFromJson();
         txtServerIP.setText(jsonConfig.getRemoteIpAddress());
         txtServerPort.setText(String.valueOf(jsonConfig.getRemotePort()));
         txtLocalPort.setText(String.valueOf(jsonConfig.getLocalPort()));
@@ -140,8 +139,7 @@ public class MainLayoutController {
             jsonConfig.setMethod(method);
             jsonConfig.setPassword(password);
             jsonConfig.setProxyType(type.name());
-            Util.saveFile(JsonConfig.CONF_FILE, jsonConfig.saveToJson());
-
+            jsonConfig.saveToJson();
             isValidated = true;
         } while (false);
 
