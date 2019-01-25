@@ -49,12 +49,14 @@ public class SeedCrypt extends CryptBase {
 
     public final static String CIPHER_SEED_CFB = "seed-cfb";
 
-    public static Map<String, CryptBase> getCiphers() {
-        Map<String, CryptBase> ciphers = new HashMap<>();
-        CryptBase crypt = new SeedCrypt();
-        ciphers.put(CIPHER_SEED_CFB, crypt);
-
+    public static Map<String, ICryptFactory> getCiphers() {
+        Map<String, ICryptFactory> ciphers = new HashMap<>();
+        ciphers.put(CIPHER_SEED_CFB, SeedCrypt::new);
         return ciphers;
+    }
+
+    public SeedCrypt(String name, String password) {
+        super(name, password);
     }
 
     @Override

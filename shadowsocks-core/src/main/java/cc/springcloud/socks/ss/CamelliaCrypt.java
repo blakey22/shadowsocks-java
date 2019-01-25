@@ -51,13 +51,17 @@ public class CamelliaCrypt extends CryptBase {
     public final static String CIPHER_CAMELLIA_192_CFB = "camellia-192-cfb";
     public final static String CIPHER_CAMELLIA_256_CFB = "camellia-256-cfb";
 
-    public static Map<String, CryptBase> getCiphers() {
-        Map<String, CryptBase> ciphers = new HashMap<>();
-        CryptBase crypt = new CamelliaCrypt();
-        ciphers.put(CIPHER_CAMELLIA_128_CFB, crypt);
-        ciphers.put(CIPHER_CAMELLIA_192_CFB, crypt);
-        ciphers.put(CIPHER_CAMELLIA_256_CFB, crypt);
+    public static Map<String, ICryptFactory> getCiphers() {
+        Map<String, ICryptFactory> ciphers = new HashMap<>();
+        ICryptFactory factory =  CamelliaCrypt::new;
+        ciphers.put(CIPHER_CAMELLIA_128_CFB, factory);
+        ciphers.put(CIPHER_CAMELLIA_192_CFB, factory);
+        ciphers.put(CIPHER_CAMELLIA_256_CFB, factory);
         return ciphers;
+    }
+
+    public CamelliaCrypt(String name, String password) {
+        super(name, password);
     }
 
     @Override

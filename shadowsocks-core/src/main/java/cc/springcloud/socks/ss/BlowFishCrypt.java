@@ -49,12 +49,14 @@ public class BlowFishCrypt extends CryptBase {
 
     public final static String CIPHER_BLOWFISH_CFB = "bf-cfb";
 
-    public static Map<String, CryptBase> getCiphers() {
-        Map<String, CryptBase> ciphers = new HashMap<>();
-        CryptBase crypt = new BlowFishCrypt();
-        ciphers.put(CIPHER_BLOWFISH_CFB, crypt);
-
+    public static Map<String, ICryptFactory> getCiphers() {
+        Map<String, ICryptFactory> ciphers = new HashMap<>();
+        ciphers.put(CIPHER_BLOWFISH_CFB, BlowFishCrypt::new);
         return ciphers;
+    }
+
+    public BlowFishCrypt(String name, String password) {
+        super(name, password);
     }
 
     @Override

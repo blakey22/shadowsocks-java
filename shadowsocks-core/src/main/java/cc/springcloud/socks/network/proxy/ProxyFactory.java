@@ -31,21 +31,23 @@
 
 package cc.springcloud.socks.network.proxy;
 
+
 import java.util.*;
+import java.util.function.Supplier;
 
 /**
  * Proxy factory
  */
 public class ProxyFactory {
-    public static final Map<IProxy.TYPE, IProxy> proxies = new HashMap<IProxy.TYPE, IProxy>() {{
-        put(IProxy.TYPE.HTTP, new HttpProxy());
-        put(IProxy.TYPE.SOCKS5, new Socks5Proxy());
-        put(IProxy.TYPE.AUTO, new AutoProxy());
+    public static final Map<IProxy.TYPE, Supplier<IProxy>> proxies = new HashMap<IProxy.TYPE, Supplier<IProxy>>() {{
+        put(IProxy.TYPE.HTTP, HttpProxy::new);
+        put(IProxy.TYPE.SOCKS5, Socks5Proxy::new);
+        put(IProxy.TYPE.AUTO, AutoProxy::new);
     }};
 
     public static IProxy get(String name) {
         IProxy.TYPE type = IProxy.TYPE.valueOf(name);
-        return proxies.get(type);
+        return proxies.get(type).get();
     }
 
     public static List<IProxy.TYPE> getSupportedProxyTypes() {

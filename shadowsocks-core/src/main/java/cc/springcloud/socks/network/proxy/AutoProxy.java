@@ -2,6 +2,7 @@ package cc.springcloud.socks.network.proxy;
 
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 import java.util.logging.Logger;
 
 /**
@@ -53,9 +54,9 @@ public class AutoProxy implements IProxy {
 
     private void init(byte[] data) {
         IProxy proxy;
-        for (Map.Entry<IProxy.TYPE, IProxy> entry : ProxyFactory.proxies.entrySet()) {
+        for (Map.Entry<IProxy.TYPE, Supplier<IProxy>> entry : ProxyFactory.proxies.entrySet()) {
             if (entry.getKey() == this.getType()) continue;
-            proxy = entry.getValue();
+            proxy = entry.getValue().get();
             if (proxy.isMine(data)) {
                 logger.fine("ProxyType (Auto): " + proxy.getType());
                 _proxy = proxy;

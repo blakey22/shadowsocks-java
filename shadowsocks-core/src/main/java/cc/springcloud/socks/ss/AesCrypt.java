@@ -55,16 +55,20 @@ public class AesCrypt extends CryptBase {
     public final static String CIPHER_AES_192_OFB = "aes-192-ofb";
     public final static String CIPHER_AES_256_OFB = "aes-256-ofb";
 
-    public static Map<String, CryptBase> getCiphers() {
-        Map<String, CryptBase> ciphers = new HashMap<>();
-        CryptBase crypt = new AesCrypt();
-        ciphers.put(CIPHER_AES_128_CFB, crypt);
-        ciphers.put(CIPHER_AES_192_CFB, crypt);
-        ciphers.put(CIPHER_AES_256_CFB, crypt);
-        ciphers.put(CIPHER_AES_128_OFB, crypt);
-        ciphers.put(CIPHER_AES_192_OFB, crypt);
-        ciphers.put(CIPHER_AES_256_OFB, crypt);
+    public static Map<String, ICryptFactory> getCiphers() {
+        Map<String, ICryptFactory> ciphers = new HashMap<>();
+        ICryptFactory factory = AesCrypt::new;
+        ciphers.put(CIPHER_AES_128_CFB, factory);
+        ciphers.put(CIPHER_AES_192_CFB, factory);
+        ciphers.put(CIPHER_AES_256_CFB, factory);
+        ciphers.put(CIPHER_AES_128_OFB, factory);
+        ciphers.put(CIPHER_AES_192_OFB, factory);
+        ciphers.put(CIPHER_AES_256_OFB, factory);
         return ciphers;
+    }
+
+    public AesCrypt(String name, String password) {
+        super(name, password);
     }
 
     @Override

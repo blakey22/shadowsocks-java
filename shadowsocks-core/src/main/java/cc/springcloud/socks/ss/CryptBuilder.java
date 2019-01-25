@@ -36,8 +36,9 @@ import java.util.*;
 /**
  * Crypt factory
  */
-public class CryptFactory {
-    private static final Map<String, CryptBase> crypts = new HashMap<String, CryptBase>() {{
+public class CryptBuilder {
+
+    private static final Map<String, ICryptFactory> crypts = new HashMap<String, ICryptFactory>() {{
         putAll(AesCrypt.getCiphers());
         putAll(CamelliaCrypt.getCiphers());
         putAll(BlowFishCrypt.getCiphers());
@@ -49,8 +50,8 @@ public class CryptFactory {
         return crypts.get(name) != null;
     }
 
-    public static ICrypt get(String name, String password) {
-        CryptBase crypt = crypts.get(name);
+    public static ICrypt build(String name, String password) {
+        ICryptFactory crypt = crypts.get(name);
         if (crypt != null) {
             return crypt.getCrypt(name, password);
         }

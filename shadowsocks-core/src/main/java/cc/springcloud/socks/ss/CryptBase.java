@@ -57,11 +57,12 @@ public abstract class CryptBase implements ICrypt {
     protected abstract void _encrypt(byte[] data, ByteArrayOutputStream stream);
     protected abstract void _decrypt(byte[] data, ByteArrayOutputStream stream);
 
-    protected SecretKey _key;
-    protected String _name;
-    protected ShadowSocksKey _ssKey;
-    protected int _ivLength;
-    protected int _keyLength;
+    protected final SecretKey _key;
+    protected final String _name;
+    protected final ShadowSocksKey _ssKey;
+    protected final int _ivLength;
+    protected final int _keyLength;
+
     protected boolean _encryptIVSet;
     protected boolean _decryptIVSet;
     protected byte[] _encryptIV;
@@ -72,13 +73,12 @@ public abstract class CryptBase implements ICrypt {
     protected StreamBlockCipher decCipher;
     private Logger logger = LoggerFactory.getLogger(getClass());
 
-    public ICrypt getCrypt(String name,String password){
+    public CryptBase(String name,String password){
         _name = name.toLowerCase();
         _ivLength = getIVLength();
         _keyLength = getKeyLength();
         _ssKey = new ShadowSocksKey(password, _keyLength);
         _key = getKey();
-        return this;
     }
 
     protected void setIV(byte[] iv, boolean isEncrypt)

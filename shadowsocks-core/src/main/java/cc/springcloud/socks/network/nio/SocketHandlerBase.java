@@ -33,7 +33,7 @@ package cc.springcloud.socks.network.nio;
 import cc.springcloud.socks.Constant;
 import cc.springcloud.socks.network.Config;
 import cc.springcloud.socks.network.IServer;
-import cc.springcloud.socks.ss.CryptFactory;
+import cc.springcloud.socks.ss.CryptBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -69,7 +69,7 @@ public abstract class SocketHandlerBase implements IServer, ISocketHandler {
 
 
     public SocketHandlerBase(Config config) throws IOException, InvalidAlgorithmParameterException {
-        if (!CryptFactory.isCipherExisted(config.getMethod())) {
+        if (!CryptBuilder.isCipherExisted(config.getMethod())) {
             throw new InvalidAlgorithmParameterException(config.getMethod());
         }
         _config = config;

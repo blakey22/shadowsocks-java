@@ -36,7 +36,7 @@ import cc.springcloud.socks.Util;
 import cc.springcloud.socks.network.Config;
 import cc.springcloud.socks.network.proxy.IProxy;
 import cc.springcloud.socks.network.proxy.ProxyFactory;
-import cc.springcloud.socks.ss.CryptFactory;
+import cc.springcloud.socks.ss.CryptBuilder;
 import cc.springcloud.socks.ss.ICrypt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -68,7 +68,7 @@ public class PipeWorker implements Runnable {
         _remoteChannel = remoteChannel;
         _localSocketHandler = localHandler;
         _remoteSocketHandler = remoteHandler;
-        _crypt = CryptFactory.get(config.getMethod(), config.getPassword());
+        _crypt = CryptBuilder.build(config.getMethod(), config.getPassword());
         _proxy = ProxyFactory.get(config.getProxyType());
         _outStream = new ByteArrayOutputStream(Constant.BUFFER_SIZE);
         _processQueue = new LinkedBlockingQueue<>();

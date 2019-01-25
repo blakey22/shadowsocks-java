@@ -9,7 +9,7 @@ import cc.springcloud.socks.network.IServer;
 import cc.springcloud.socks.network.NioLocalServer;
 import cc.springcloud.socks.network.proxy.IProxy;
 import cc.springcloud.socks.network.proxy.ProxyFactory;
-import cc.springcloud.socks.ss.CryptFactory;
+import cc.springcloud.socks.ss.CryptBuilder;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
@@ -64,7 +64,7 @@ public class MainLayoutController {
     private void initialize() {
         // set cipher options
         ObservableList<String> ciphers = FXCollections.observableArrayList();
-        ciphers.addAll(CryptFactory.getSupportedCiphers());
+        ciphers.addAll(CryptBuilder.getSupportedCiphers());
         cboCipher.setItems(ciphers);
 
         // set proxy options

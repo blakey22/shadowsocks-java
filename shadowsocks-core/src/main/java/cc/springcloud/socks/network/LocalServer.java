@@ -33,7 +33,7 @@ package cc.springcloud.socks.network;
 
 import cc.springcloud.socks.Constant;
 import cc.springcloud.socks.network.io.PipeSocket;
-import cc.springcloud.socks.ss.CryptFactory;
+import cc.springcloud.socks.ss.CryptBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -57,7 +57,7 @@ public class LocalServer implements IServer {
     private List<PipeSocket> _pipes;
 
     public LocalServer(Config config) throws IOException, InvalidAlgorithmParameterException {
-        if (!CryptFactory.isCipherExisted(config.getMethod())) {
+        if (!CryptBuilder.isCipherExisted(config.getMethod())) {
             throw new InvalidAlgorithmParameterException(config.getMethod());
         }
         _config = config;

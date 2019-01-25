@@ -37,7 +37,7 @@ import cc.springcloud.socks.Util;
 import cc.springcloud.socks.network.Config;
 import cc.springcloud.socks.network.proxy.IProxy;
 import cc.springcloud.socks.network.proxy.ProxyFactory;
-import cc.springcloud.socks.ss.CryptFactory;
+import cc.springcloud.socks.ss.CryptBuilder;
 import cc.springcloud.socks.ss.ICrypt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -74,7 +74,7 @@ public class PipeSocket implements Runnable {
         _local = socket;
         _local.setSoTimeout(TIMEOUT);
         _config = config;
-        _crypt = CryptFactory.get(_config.getMethod(), _config.getPassword());
+        _crypt = CryptBuilder.build(_config.getMethod(), _config.getPassword());
         _proxy = ProxyFactory.get(_config.getProxyType());
         _remoteOutStream = new ByteArrayOutputStream(Constant.BUFFER_SIZE);
         _localOutStream = new ByteArrayOutputStream(Constant.BUFFER_SIZE);

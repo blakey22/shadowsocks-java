@@ -5,7 +5,7 @@ import cc.springcloud.socks.misc.Util;
 import cc.springcloud.socks.network.NioLocalServer;
 import cc.springcloud.socks.network.proxy.IProxy;
 import cc.springcloud.socks.network.proxy.ProxyFactory;
-import cc.springcloud.socks.ss.CryptFactory;
+import cc.springcloud.socks.ss.CryptBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -122,7 +122,7 @@ public class Main {
             System.out.printf("  %s\n", t.toString().toLowerCase());
         }
         System.out.println("Support Ciphers:");
-        for (String s : CryptFactory.getSupportedCiphers()) {
+        for (String s : CryptBuilder.getSupportedCiphers()) {
             System.out.printf("  %s\n", s);
         }
         System.out.println("Example:");
