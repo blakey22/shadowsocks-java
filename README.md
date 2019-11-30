@@ -1,3 +1,9 @@
+This project is being discontinued
+==================================
+
+Since I am busy at work in the past few years and couldn't find time to maintain it, I believe it's time to achieve it. Thank you to everyone who has used/interested in shadowsocks-java.
+
+
 shadowsocks-java
 ================
 
