@@ -71,7 +71,7 @@ public class NioLocalServer extends SocketHandlerBase {
         // print server info
         logger.info("Shadowsocks-Java v" + Constant.VERSION);
         logger.info("Cipher: " + config.getMethod());
-        logger.info(config.getProxyType() + " Proxy Server starts at port: " + config.getLocalPort());
+        logger.info(config.getProxyType() + " Proxy Server starts at : " + config.getLocalIpAddress() + ":" + config.getLocalPort());
     }
 
     @Override
@@ -115,9 +115,8 @@ public class NioLocalServer extends SocketHandlerBase {
             } else if (key.isWritable()) {
                 write(key);
             }
-        }
-        catch (IOException e) {
-            cleanUp((SocketChannel)key.channel());
+        } catch (IOException e) {
+            cleanUp((SocketChannel) key.channel());
         }
     }
 
@@ -186,8 +185,7 @@ public class NioLocalServer extends SocketHandlerBase {
                     key.interestOps(SelectionKey.OP_READ);
                 }
             }
-        }
-        else {
+        } else {
             logger.warning("LocalSocket::write queue = null: " + socketChannel);
             return;
         }
@@ -203,8 +201,7 @@ public class NioLocalServer extends SocketHandlerBase {
             pipe.close();
             _pipes.remove(socketChannel);
             logger.fine("LocalSocket closed: " + pipe.socketInfo);
-        }
-        else {
+        } else {
             logger.fine("LocalSocket closed (NULL): " + socketChannel);
         }
 
